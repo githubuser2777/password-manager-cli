@@ -14,6 +14,9 @@ var rootCmd = &cobra.Command{
 	Long: `passmgr is a command-line password manager written in Go.
 It uses AES-256-GCM for encryption and Argon2id for key derivation
 to securely store your passwords in a local vault.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		tuiCmd.Run(cmd, args)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
