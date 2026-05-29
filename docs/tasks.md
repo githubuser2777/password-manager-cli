@@ -5,9 +5,9 @@ Quy định:
 2. Tuân thủ tuyệt đối `rules.md`: **Không mở/đọc quá 5 file cùng lúc**; **Bắt buộc viết comment** cho các logic mã hóa phức tạp.
 
 ## Phase 1: Foundation
-- [ ] Khởi tạo thư mục và Go module (`go mod init github.com/yourusername/password-manager-cli` hoặc tương tự).
-- [ ] Thiết lập cấu trúc thư mục: `cmd/`, `internal/crypto/`, `internal/storage/`, `internal/core/`.
-- [ ] Cài đặt package `spf13/cobra` và thiết lập file `main.go`, `cmd/root.go`.
+- [x] Khởi tạo thư mục và Go module (`go mod init github.com/yourusername/password-manager-cli` hoặc tương tự).
+- [x] Thiết lập cấu trúc thư mục: `cmd/`, `internal/crypto/`, `internal/storage/`, `internal/core/`.
+- [x] Cài đặt package `spf13/cobra` và thiết lập file `main.go`, `cmd/root.go`.
 
 ## Phase 2: Domain Models & Cryptography Module
 - [ ] (internal/core): Định nghĩa struct `Vault` và `Entry`.

@@ -20,3 +20,8 @@ Bộ quy tắc này được áp dụng như "hiến pháp" (Constitution) cho m
 - Tính rõ ràng ưu tiên hơn độ ngắn gọn. Dùng tên biến mô tả đúng chức năng.
 - Tuân thủ DRY (Don't Repeat Yourself) một cách hợp lý; đừng ép DRY nếu nó khiến code bị trừu tượng hóa quá đà và khó đọc.
 - Để lại bình luận (comments) ở các hàm có logic nghiệp vụ phức tạp, thuật toán rẽ nhánh, hoặc những đoạn code là "workaround" (cách chữa cháy).
+
+## 5. Quy trình Git & Changelog
+- **Git Commit & Push**: Agent phải tự động commit và push sau khi hoàn thành các thay đổi đáng kể (VD: xong 1 phase).
+- **Review trước khi Commit**: KHÔNG ĐƯỢC dùng `git add .` một cách mù quáng. Phải kiểm tra file nào thay đổi (`git status`) và chỉ add những file thực sự liên quan đến commit đó.
+- **Changelog**: Tự động tạo và cập nhật file `docs/changelog.md` cho mỗi lần có thay đổi lớn. Mỗi thay đổi phải được phân tách rõ ràng (VD: sử dụng Header ngày tháng, version) nhưng lưu chung trong cùng một file.
