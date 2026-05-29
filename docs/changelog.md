@@ -4,6 +4,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Phase 5] - 2026-05-29
 ### Added
+- Thêm tệp `LICENSE` (MIT License) để công khai dự án dạng mã nguồn mở.
+- Di chuyển và viết lại `SECURITY.md` thành `.github/SECURITY.md` theo chuẩn Security Policy của GitHub.
 - Đã thêm `README.md` với đầy đủ hướng dẫn sử dụng công cụ.
 - Tạo script build dành cho Windows (`build.ps1`) và Linux/Mac (`Makefile`).
 - Hoàn tất dự án phiên bản 1.0.
