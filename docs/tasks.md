@@ -29,5 +29,5 @@ Quy định:
 - [x] (cmd/generate.go): Implement lệnh `generate`. (Sinh mật khẩu ngẫu nhiên để dùng ngay).
 
 ## Phase 5: Polish & Build
-- [ ] Đóng gói và viết script build (`Makefile` hoặc `build.sh`).
-- [ ] Viết `README.md` hướng dẫn sử dụng.
+- [x] Đóng gói và viết script build (`Makefile` hoặc `build.ps1`).
+- [x] Viết tài liệu `README.md` hướng dẫn sử dụng công cụ.

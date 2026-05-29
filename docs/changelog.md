@@ -2,6 +2,14 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại file này.
 
+## [Phase 5] - 2026-05-29
+### Added
+- Đã thêm `README.md` với đầy đủ hướng dẫn sử dụng công cụ.
+- Tạo script build dành cho Windows (`build.ps1`) và Linux/Mac (`Makefile`).
+- Hoàn tất dự án phiên bản 1.0.
+
+
+
 ## [Phase 4] - 2026-05-29
 ### Added
 - Tích hợp package `golang.org/x/term` để nhập Master Password bảo mật, không hiển thị trên màn hình.
