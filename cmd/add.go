@@ -56,10 +56,17 @@ var addCmd = &cobra.Command{
 			password, _ = promptPassword("Password: ")
 		}
 
+		fmt.Print("Notes (optional): ")
+		notes, _ := reader.ReadString('\n')
+		notes = strings.TrimSpace(notes)
+
+		now := time.Now().Format(time.RFC3339)
 		vault.Entries[service] = core.Entry{
 			Username:  username,
 			Password:  password,
-			CreatedAt: time.Now().Format(time.RFC3339),
+			Notes:     notes,
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 
 		if err := storage.SaveVault(path, masterPw, vault); err != nil {

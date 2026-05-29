@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/spf13/cobra"
@@ -36,12 +37,21 @@ var getCmd = &cobra.Command{
 		}
 
 		fmt.Println("Username:", entry.Username)
+		if entry.Notes != "" {
+			fmt.Println("Notes:", entry.Notes)
+		}
+		if entry.UpdatedAt != "" {
+			fmt.Println("Last Updated:", entry.UpdatedAt)
+		}
 
 		if copyFlag {
 			if err := clipboard.WriteAll(entry.Password); err != nil {
 				fmt.Println("Failed to copy to clipboard:", err)
 			} else {
-				fmt.Println("Password copied to clipboard!")
+				fmt.Println("Password copied to clipboard! It will be cleared in 30 seconds...")
+				time.Sleep(30 * time.Second)
+				_ = clipboard.WriteAll("")
+				fmt.Println("Clipboard cleared.")
 			}
 		} else {
 			fmt.Println("Password:", entry.Password)

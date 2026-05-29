@@ -4,7 +4,9 @@ package core
 type Entry struct {
 	Username  string `json:"username"`
 	Password  string `json:"password"`
+	Notes     string `json:"notes,omitempty"`
 	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
 // Vault represents the entire collection of credentials.

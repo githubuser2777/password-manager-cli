@@ -60,6 +60,14 @@ func SaveVault(path string, masterPassword string, vault *core.Vault) error {
 		return err
 	}
 
+	// Create backup of existing vault if it exists
+	if _, err := os.Stat(path); err == nil {
+		backupPath := path + ".bak"
+		if input, err := os.ReadFile(path); err == nil {
+			_ = os.WriteFile(backupPath, input, 0600)
+		}
+	}
+
 	// Rename over the original file
 	return os.Rename(tempFile, path)
 }
