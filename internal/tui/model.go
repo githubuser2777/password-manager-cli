@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/list"
@@ -18,6 +19,9 @@ var (
 	appStyle   = lipgloss.NewStyle().Padding(1, 2)
 	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	infoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	focusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	blurStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	helpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 )
 
 type state int
@@ -27,12 +31,17 @@ const (
 	stateList
 	stateView
 	stateMessage
+	stateForm
+	stateConfirmDelete
 )
 
 type item struct {
-	service  string
-	username string
-	password string
+	service   string
+	username  string
+	password  string
+	notes     string
+	createdAt string
+	updatedAt string
 }
 
 func (i item) Title() string       { return i.service }
@@ -42,10 +51,15 @@ func (i item) FilterValue() string { return i.service }
 type model struct {
 	state       state
 	vaultPath   string
+	masterPw    string
 	vault       *core.Vault
 	
 	passwordInput textinput.Model
 	servicesList  list.Model
+	
+	formInputs []textinput.Model
+	focusIndex int
+	isEditing  bool
 	
 	selectedItem item
 	msg          string
@@ -71,6 +85,65 @@ func initialModel(vaultPath string) model {
 	}
 }
 
+func (m *model) setupForm(service, username, password, notes string, isEdit bool) {
+	m.formInputs = make([]textinput.Model, 4)
+	
+	var t textinput.Model
+	for i := range m.formInputs {
+		t = textinput.New()
+		t.Cursor.Style = focusStyle
+		t.CharLimit = 128
+
+		switch i {
+		case 0:
+			t.Placeholder = "Service Name (e.g. github.com)"
+			t.SetValue(service)
+			t.Focus()
+			t.PromptStyle = focusStyle
+			t.TextStyle = focusStyle
+			if isEdit {
+				t.Blur() // Disable editing service name
+			}
+		case 1:
+			t.Placeholder = "Username"
+			t.SetValue(username)
+		case 2:
+			t.Placeholder = "Password"
+			t.SetValue(password)
+		case 3:
+			t.Placeholder = "Notes (optional)"
+			t.SetValue(notes)
+		}
+
+		m.formInputs[i] = t
+	}
+	m.focusIndex = 0
+	if isEdit {
+		m.focusIndex = 1
+		m.formInputs[0].PromptStyle = blurStyle
+		m.formInputs[0].TextStyle = blurStyle
+		m.formInputs[1].Focus()
+		m.formInputs[1].PromptStyle = focusStyle
+		m.formInputs[1].TextStyle = focusStyle
+	}
+	m.isEditing = isEdit
+}
+
+func (m *model) updateList() {
+	var items []list.Item
+	for s, e := range m.vault.Entries {
+		items = append(items, item{
+			service:   s,
+			username:  e.Username,
+			password:  e.Password,
+			notes:     e.Notes,
+			createdAt: e.CreatedAt,
+			updatedAt: e.UpdatedAt,
+		})
+	}
+	m.servicesList.SetItems(items)
+}
+
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
@@ -83,7 +156,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			if m.state == stateView || m.state == stateMessage {
+			if m.state == stateView || m.state == stateMessage || m.state == stateForm || m.state == stateConfirmDelete {
 				if m.vault != nil {
 					m.state = stateList
 					return m, nil
@@ -111,13 +184,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isError = true
 				m.state = stateMessage
 			} else {
+				m.masterPw = pw
 				m.vault = vault
-				// Populate list
-				var items []list.Item
-				for s, e := range vault.Entries {
-					items = append(items, item{service: s, username: e.Username, password: e.Password})
-				}
-				m.servicesList.SetItems(items)
+				m.updateList()
 				m.state = stateList
 			}
 		}
@@ -125,12 +194,123 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.servicesList, cmd = m.servicesList.Update(msg)
 		cmds = append(cmds, cmd)
 
-		if msg, ok := msg.(tea.KeyMsg); ok && msg.Type == tea.KeyEnter {
-			if i, ok := m.servicesList.SelectedItem().(item); ok {
-				m.selectedItem = i
-				m.state = stateView
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			// Only allow shortcuts when not filtering
+			if m.servicesList.FilterState() != list.Filtering {
+				switch msg.String() {
+				case "enter":
+					if i, ok := m.servicesList.SelectedItem().(item); ok {
+						m.selectedItem = i
+						m.state = stateView
+					}
+				case "a":
+					m.setupForm("", "", "", "", false)
+					m.state = stateForm
+				case "e":
+					if i, ok := m.servicesList.SelectedItem().(item); ok {
+						m.selectedItem = i
+						m.setupForm(i.service, i.username, i.password, i.notes, true)
+						m.state = stateForm
+					}
+				case "d":
+					if i, ok := m.servicesList.SelectedItem().(item); ok {
+						m.selectedItem = i
+						m.state = stateConfirmDelete
+					}
+				}
 			}
 		}
+	case stateForm:
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			switch msg.String() {
+			case "tab", "shift+tab", "enter", "up", "down":
+				s := msg.String()
+				
+				if s == "enter" && m.focusIndex == len(m.formInputs)-1 {
+					// Save
+					service := m.formInputs[0].Value()
+					username := m.formInputs[1].Value()
+					password := m.formInputs[2].Value()
+					notes := m.formInputs[3].Value()
+
+					if service == "" {
+						break
+					}
+					
+					entry, exists := m.vault.Entries[service]
+					if m.isEditing {
+						entry.Username = username
+						entry.Password = password
+						entry.Notes = notes
+						entry.UpdatedAt = time.Now().Format(time.RFC3339)
+					} else {
+						if exists {
+							m.msg = "Service already exists!"
+							m.isError = true
+							m.state = stateMessage
+							return m, nil
+						}
+						entry = core.Entry{
+							Username:  username,
+							Password:  password,
+							Notes:     notes,
+							CreatedAt: time.Now().Format(time.RFC3339),
+						}
+					}
+					
+					m.vault.Entries[service] = entry
+					if err := storage.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
+						m.msg = "Failed to save vault: " + err.Error()
+						m.isError = true
+					} else {
+						m.msg = "Credential saved successfully!"
+						m.isError = false
+						m.updateList()
+					}
+					m.state = stateMessage
+					return m, nil
+				}
+
+				if s == "up" || s == "shift+tab" {
+					m.focusIndex--
+				} else {
+					m.focusIndex++
+				}
+
+				if m.focusIndex > len(m.formInputs)-1 {
+					m.focusIndex = 0
+				} else if m.focusIndex < 0 {
+					m.focusIndex = len(m.formInputs) - 1
+				}
+				
+				if m.isEditing && m.focusIndex == 0 {
+					if s == "up" || s == "shift+tab" {
+						m.focusIndex = len(m.formInputs) - 1
+					} else {
+						m.focusIndex = 1
+					}
+				}
+
+				for i := 0; i <= len(m.formInputs)-1; i++ {
+					if i == m.focusIndex {
+						m.formInputs[i].Focus()
+						m.formInputs[i].PromptStyle = focusStyle
+						m.formInputs[i].TextStyle = focusStyle
+						continue
+					}
+					m.formInputs[i].Blur()
+					m.formInputs[i].PromptStyle = blurStyle
+					m.formInputs[i].TextStyle = blurStyle
+				}
+				return m, textinput.Blink
+			}
+		}
+		
+		for i := range m.formInputs {
+			m.formInputs[i], cmd = m.formInputs[i].Update(msg)
+			cmds = append(cmds, cmd)
+		}
+		
 	case stateView:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
@@ -143,6 +323,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.isError = false
 				}
 				m.state = stateMessage
+			case "d":
+				m.state = stateConfirmDelete
+			case "e":
+				m.setupForm(m.selectedItem.service, m.selectedItem.username, m.selectedItem.password, m.selectedItem.notes, true)
+				m.state = stateForm
+			}
+		}
+	case stateConfirmDelete:
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			switch msg.String() {
+			case "y", "Y":
+				delete(m.vault.Entries, m.selectedItem.service)
+				if err := storage.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
+					m.msg = "Failed to delete: " + err.Error()
+					m.isError = true
+				} else {
+					m.msg = "Deleted successfully!"
+					m.isError = false
+					m.updateList()
+				}
+				m.state = stateMessage
+			case "n", "N":
+				m.state = stateList
 			}
 		}
 	case stateMessage:
@@ -170,13 +373,32 @@ func (m model) View() string {
 		)
 	case stateList:
 		s = m.servicesList.View()
+		s += "\n" + helpStyle.Render("a: Add | e: Edit | d: Delete | /: Search")
 	case stateView:
 		s = fmt.Sprintf(
-			"%s\n\nService: %s\nUsername: %s\nPassword: %s\n\n[c] Copy Password  [esc] Back",
+			"%s\n\nService: %s\nUsername: %s\nPassword: %s\nNotes: %s\nCreated: %s\nUpdated: %s\n\n[c] Copy Password  [e] Edit  [d] Delete  [esc] Back",
 			titleStyle.Render("View Credential"),
 			m.selectedItem.service,
 			m.selectedItem.username,
 			m.selectedItem.password,
+			m.selectedItem.notes,
+			m.selectedItem.createdAt,
+			m.selectedItem.updatedAt,
+		)
+	case stateForm:
+		title := "Add Credential"
+		if m.isEditing {
+			title = "Edit Credential"
+		}
+		s = titleStyle.Render(title) + "\n\n"
+		for i := range m.formInputs {
+			s += m.formInputs[i].View() + "\n"
+		}
+		s += "\n\n" + helpStyle.Render("tab/up/down: Move | enter (on last): Save | esc: Cancel")
+	case stateConfirmDelete:
+		s = fmt.Sprintf(
+			"\nAre you sure you want to delete '%s'? (y/N)",
+			m.selectedItem.service,
 		)
 	case stateMessage:
 		style := infoStyle
