@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -16,9 +17,11 @@ import (
 
 // Custom Keys for Help Menu
 type listKeyMap struct {
-	add    key.Binding
-	edit   key.Binding
-	delete key.Binding
+	add         key.Binding
+	edit        key.Binding
+	delete      key.Binding
+	auditLocal  key.Binding
+	auditOnline key.Binding
 }
 
 var customKeys = listKeyMap{
@@ -33,6 +36,14 @@ var customKeys = listKeyMap{
 	delete: key.NewBinding(
 		key.WithKeys("d"),
 		key.WithHelp("d", "delete"),
+	),
+	auditLocal: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "audit (local)"),
+	),
+	auditOnline: key.NewBinding(
+		key.WithKeys("R"),
+		key.WithHelp("R", "audit (online)"),
 	),
 }
 
@@ -56,6 +67,7 @@ const (
 	stateMessage
 	stateForm
 	stateConfirmDelete
+	stateAudit
 )
 
 type item struct {
@@ -87,6 +99,7 @@ type model struct {
 	selectedItem item
 	msg          string
 	isError      bool
+	auditReport  string
 }
 
 func initialModel(vaultPath string) model {
@@ -100,10 +113,10 @@ func initialModel(vaultPath string) model {
 	l.Title = "Password Vault"
 	l.Styles.Title = titleStyle
 	l.AdditionalShortHelpKeys = func() []key.Binding {
-		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete}
+		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete, customKeys.auditLocal, customKeys.auditOnline}
 	}
 	l.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete}
+		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete, customKeys.auditLocal, customKeys.auditOnline}
 	}
 
 	return model{
@@ -173,6 +186,62 @@ func (m *model) updateList() {
 	m.servicesList.SetItems(items)
 }
 
+func (m *model) runAudit(online bool) {
+	var report strings.Builder
+	report.WriteString(titleStyle.Render(fmt.Sprintf("Password Audit Report (Online: %v)", online)))
+	report.WriteString("\n\n")
+
+	weakCount := 0
+	reusedCount := 0
+	pwnedCount := 0
+
+	// Check for reuse
+	pwMap := make(map[string][]string)
+	for service, entry := range m.vault.Entries {
+		pwMap[entry.Password] = append(pwMap[entry.Password], service)
+	}
+
+	for _, services := range pwMap {
+		if len(services) > 1 {
+			reusedCount++
+			report.WriteString(fmt.Sprintf("[!] REUSED: The password for %s is used across %d services.\n", services[0], len(services)))
+		}
+	}
+
+	for service, entry := range m.vault.Entries {
+		// Basic strength check
+		if len(entry.Password) < 8 {
+			weakCount++
+			report.WriteString(fmt.Sprintf("[!] WEAK: Password for '%s' is too short (under 8 chars).\n", service))
+		} else if !strings.ContainsAny(entry.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") ||
+			!strings.ContainsAny(entry.Password, "0123456789") {
+			weakCount++
+			report.WriteString(fmt.Sprintf("[!] WEAK: Password for '%s' lacks numbers or uppercase letters.\n", service))
+		}
+
+		// Online HIBP check
+		if online {
+			pwned, err := core.CheckPwned(entry.Password)
+			if err != nil {
+				report.WriteString(fmt.Sprintf("[-] HIBP API Check failed for '%s': %v\n", service, err))
+			} else if pwned {
+				pwnedCount++
+				report.WriteString(fmt.Sprintf("[!!!] PWNED: Password for '%s' has been found in data breaches!\n", service))
+			}
+		}
+	}
+
+	report.WriteString("\n----------------------------------------\n")
+	report.WriteString(fmt.Sprintf("Audit Complete! Total passwords checked: %d\n", len(m.vault.Entries)))
+	report.WriteString(fmt.Sprintf("Weak: %d | Reused: %d | Pwned: %d\n", weakCount, reusedCount, pwnedCount))
+	if !online {
+		report.WriteString("(Run with Shift+r (R) to check online for data breaches)\n")
+	}
+	report.WriteString("\n[esc] Back to list")
+
+	m.auditReport = report.String()
+}
+
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
@@ -185,7 +254,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			if m.state == stateView || m.state == stateMessage || m.state == stateForm || m.state == stateConfirmDelete {
+			if m.state == stateView || m.state == stateMessage || m.state == stateForm || m.state == stateConfirmDelete || m.state == stateAudit {
 				if m.vault != nil {
 					m.state = stateList
 					return m, nil
@@ -246,6 +315,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.selectedItem = i
 						m.state = stateConfirmDelete
 					}
+				case "r":
+					m.runAudit(false)
+					m.state = stateAudit
+				case "R":
+					m.runAudit(true)
+					m.state = stateAudit
 				}
 			}
 		}
@@ -434,6 +509,8 @@ func (m model) View() string {
 			style = errorStyle
 		}
 		s = fmt.Sprintf("\n%s\n\nPress Enter to continue.", style.Render(m.msg))
+	case stateAudit:
+		s = m.auditReport
 	}
 	return appStyle.Render(s)
 }

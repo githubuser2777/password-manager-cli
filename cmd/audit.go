@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"password-manager-cli/internal/core"
 	"password-manager-cli/internal/storage"
 )
 
@@ -64,7 +65,7 @@ var auditCmd = &cobra.Command{
 
 			// Online HIBP check
 			if onlineFlag {
-				pwned, err := checkPwned(entry.Password)
+				pwned, err := core.CheckPwned(entry.Password)
 				if err != nil {
 					fmt.Printf("[-] HIBP Check failed for '%s': %v\n", service, err)
 				} else if pwned {
@@ -81,40 +82,6 @@ var auditCmd = &cobra.Command{
 			fmt.Println("(Run with --online to check for data breaches via HaveIBeenPwned API)")
 		}
 	},
-}
-
-func checkPwned(password string) (bool, error) {
-	hasher := sha1.New()
-	hasher.Write([]byte(password))
-	hashStr := strings.ToUpper(fmt.Sprintf("%x", hasher.Sum(nil)))
-
-	prefix := hashStr[:5]
-	suffix := hashStr[5:]
-
-	resp, err := http.Get("https://api.pwnedpasswords.com/range/" + prefix)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
-
-	lines := strings.Split(string(bodyBytes), "\n")
-	for _, line := range lines {
-		parts := strings.Split(strings.TrimSpace(line), ":")
-		if len(parts) >= 1 && parts[0] == suffix {
-			return true, nil // Found match
-		}
-	}
-
-	return false, nil
 }
 
 func init() {
