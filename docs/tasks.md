@@ -17,9 +17,9 @@ Quy định:
 - [x] Viết Unit Tests kiểm tra tính chính xác của `crypto` module (Mã hóa xong giải mã phải ra dữ liệu gốc).
 
 ## Phase 3: Storage Module
-- [ ] (internal/storage): Xây dựng hàm `SaveVault(path string, masterPassword string, vault *core.Vault) error` dựa theo Storage Flow (ghi binary Salt + Nonce + Ciphertext).
-- [ ] (internal/storage): Xây dựng hàm `LoadVault(path string, masterPassword string) (*core.Vault, error)`.
-- [ ] Viết Unit Tests cho việc lưu và tải vault từ file (dùng thư mục tạm).
+- [x] (internal/storage): Xây dựng hàm `SaveVault(path string, masterPassword string, vault *core.Vault) error` dựa theo Storage Flow (ghi binary Salt + Nonce + Ciphertext).
+- [x] (internal/storage): Xây dựng hàm `LoadVault(path string, masterPassword string) (*core.Vault, error)`.
+- [x] Viết Unit Tests cho việc lưu và tải vault từ file (dùng thư mục tạm).
 
 ## Phase 4: CLI Commands
 - [ ] (cmd/init.go): Implement lệnh `init`. (Kiểm tra file vault đã tồn tại chưa, hỏi người dùng nhập Master Password ẩn 2 lần để xác nhận, tạo vault rỗng với Salt mới và lưu lại).

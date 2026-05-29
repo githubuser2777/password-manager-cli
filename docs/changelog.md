@@ -2,6 +2,14 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại file này.
 
+## [Phase 3] - 2026-05-29
+### Added
+- Thêm module `internal/storage/storage.go` quản lý việc IO đọc/ghi file `vault.enc`.
+- Xây dựng cơ chế Load/Save an toàn (Atomic Write): Ghi ra file tạm trước khi rename để tránh lỗi hỏng file nếu bị crash giữa chừng.
+- Đóng gói dữ liệu nhị phân với cấu trúc `Salt(16) + Nonce(12) + Ciphertext`.
+- Viết Unit Tests (`storage_test.go`) giả lập luồng ghi/đọc bằng thư mục tạm thời.
+
+
 ## [Phase 2] - 2026-05-29
 ### Added
 - Thêm `internal/core/models.go` định nghĩa cấu trúc `Vault` và `Entry`.
