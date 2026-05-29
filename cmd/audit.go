@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"crypto/sha1"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 
 	"github.com/spf13/cobra"
