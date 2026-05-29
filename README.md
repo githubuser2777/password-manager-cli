@@ -35,6 +35,7 @@ passmgr
 - **Add**: Press `a` from the list to open the interactive Add form.
 - **Edit**: Press `e` on a selected service to edit its details.
 - **Delete**: Press `d` to delete a service (prompts for confirmation).
+- **Audit Passwords**: Press `r` to run a local security check (finds short, reused passwords). Press `R` (Shift+R) to perform a deep online audit against known data breaches via HaveIBeenPwned API.
 
 ### 2. CLI Commands (Scripting & Automation)
 If you prefer traditional commands or want to write automated scripts, all features are available via the CLI:
