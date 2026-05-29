@@ -1,61 +1,62 @@
 # Password Manager CLI
 
-Một công cụ quản lý mật khẩu dòng lệnh (CLI) được viết bằng Go, tập trung vào bảo mật và tính tiện dụng.
+A fast, secure, and lightweight command-line password manager written in Go.
 
-## Tính Năng Nổi Bật
-- **Mã hóa AES-256-GCM**: Mã hóa xác thực, tiêu chuẩn cao nhất hiện nay.
-- **Sinh khóa Argon2id**: Ngăn chặn tối đa các cuộc tấn công brute-force vào Master Password.
-- **Lưu trữ Cục bộ (Local Storage)**: Dữ liệu của bạn 100% nằm trên máy của bạn (mặc định tại `~/.passmgr/vault.enc`).
-- **Clipboard Integration**: Hỗ trợ copy mật khẩu vào bộ nhớ đệm mà không cần in ra màn hình.
-- **Sinh mật khẩu ngẫu nhiên**: Có sẵn tính năng tạo mật khẩu siêu mạnh.
+## Features
+- **AES-256-GCM Encryption**: State-of-the-art authenticated encryption.
+- **Argon2id Key Derivation**: High security against brute-force attacks on your Master Password.
+- **Local Storage**: Your vault is stored entirely on your local machine (default: `~/.passmgr/vault.enc`). No cloud dependencies.
+- **Clipboard Integration**: Seamlessly copy passwords to your clipboard without displaying them on the screen.
+- **Random Password Generator**: Built-in utility to generate strong, secure random passwords on the fly.
 
-## Cài Đặt
+## Installation
 
-Yêu cầu đã cài đặt [Go](https://go.dev/dl/).
-Mở terminal và chạy lệnh sau để build mã nguồn:
+Ensure you have [Go](https://go.dev/dl/) installed. 
+Open your terminal and run the following command to build from source:
 ```bash
 go build -o passmgr.exe
 ```
-*(Trên Linux/Mac thì dùng `go build -o passmgr`)*
+*(On Linux/macOS, use `go build -o passmgr`)*
 
-## Hướng Dẫn Sử Dụng
+## Usage Guide
 
-### 1. Khởi tạo kho lưu trữ (Vault)
+### 1. Initialize the Vault
 ```bash
 passmgr init
 ```
-Lệnh này sẽ yêu cầu bạn tạo Master Password. Master Password là chìa khóa duy nhất để mở vault, nếu quên bạn sẽ mất toàn bộ dữ liệu.
+This command prompts you to create a Master Password. **Do not forget this password!** It is the only key to unlock your vault, and without it, your data cannot be recovered.
 
-### 2. Thêm mật khẩu mới
+### 2. Add a New Credential
 ```bash
 passmgr add github.com
 ```
-Lệnh này sẽ hỏi bạn Username và Password. Bạn cũng có thể để công cụ tự sinh password ngẫu nhiên bằng cờ `-g`:
+You will be prompted for a Username and Password. Alternatively, you can let the CLI auto-generate a strong password by using the `-g` (generate) flag:
 ```bash
 passmgr add github.com -g
 ```
 
-### 3. Lấy mật khẩu
+### 3. Retrieve a Password
 ```bash
 passmgr get github.com
 ```
-Để copy trực tiếp vào clipboard (bảo mật hơn vì không in ra màn hình):
+To copy the password directly to your clipboard securely (without displaying it on the screen):
 ```bash
 passmgr get github.com -c
 ```
 
-### 4. Liệt kê các tài khoản đã lưu
+### 4. List Saved Services
 ```bash
 passmgr list
 ```
+Displays a list of all services currently saved in your vault.
 
-### 5. Tiện ích sinh mật khẩu ngẫu nhiên
+### 5. Generate a Random Password (Utility)
 ```bash
 passmgr generate 20
 ```
-(Tạo mật khẩu dài 20 ký tự, có thể bỏ ký tự đặc biệt bằng cờ `-n`).
+*(Generates a 20-character secure password. You can omit special characters by appending the `-n` flag).*
 
 ## Build Scripts
-Bạn có thể sử dụng các script có sẵn để build và test tự động:
-- **Windows**: Chạy file `.\build.ps1`
-- **Linux/Mac**: Chạy lệnh `make build` (yêu cầu cài đặt Make)
+You can use the provided automated scripts to build the application:
+- **Windows**: Run `.\build.ps1`
+- **Linux/macOS**: Run `make build` (Requires `make` to be installed)
