@@ -2,6 +2,15 @@
 
 All major project changes will be recorded in this file.
 
+## [Phase 6] - 2026-05-29
+### Added
+- Created the V2 vault binary header with magic bytes `"PMV2"` and dynamically serialized Argon2id params.
+- Implemented `ZeroBytes` utility in `crypto.go` and refactored critical variables to `[]byte` with secure memory zeroing to prevent plaintext leaks.
+- Integrated Master Password strength complexity validator (`ValidateMasterPassword`) in init and change routines.
+- Re-engineered random password generator to guarantee character-class representation (lower, upper, digit, special) followed by cryptographically secure shuffling.
+- Implemented smooth terminal countdown bar for clipboard clearing in the CLI, including OS signal interrupt capture.
+- Complete visual overhaul of Bubble Tea TUI: designed split-screen dashboard view, responsive grid resizing, real-time visual password strength meter, purple unlock spinner loader, and non-blocking clipboard clearing timer ticks.
+
 ## [Phase 5] - 2026-05-29
 ### Added
 - Added the `LICENSE` file (MIT License) to open-source the project.

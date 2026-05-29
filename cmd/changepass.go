@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"password-manager-cli/internal/crypto"
 	"password-manager-cli/internal/storage"
 )
 
@@ -18,6 +20,7 @@ var changepassCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(oldPw)
 
 		vault, err := storage.LoadVault(path, oldPw)
 		if err != nil {
@@ -29,18 +32,26 @@ var changepassCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(newPw1)
+
+		// Validate Master Password strength
+		if err := crypto.ValidateMasterPassword(newPw1); err != nil {
+			fmt.Println("Weak Master Password:", err)
+			return
+		}
 
 		newPw2, err := promptPassword("Confirm New Master Password: ")
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(newPw2)
 
-		if newPw1 != newPw2 {
+		if !bytes.Equal(newPw1, newPw2) {
 			fmt.Println("Passwords do not match. Aborting.")
 			return
 		}
 
-		if newPw1 == "" {
+		if len(newPw1) == 0 {
 			fmt.Println("Password cannot be empty.")
 			return
 		}

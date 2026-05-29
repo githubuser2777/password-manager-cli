@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"password-manager-cli/internal/crypto"
 	"password-manager-cli/internal/storage"
 )
 
@@ -20,6 +21,7 @@ var deleteCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(masterPw)
 
 		vault, err := storage.LoadVault(path, masterPw)
 		if err != nil {

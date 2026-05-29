@@ -26,6 +26,7 @@ var updateCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(masterPw)
 
 		vault, err := storage.LoadVault(path, masterPw)
 		if err != nil {
@@ -58,17 +59,21 @@ var updateCmd = &cobra.Command{
 			}
 			fmt.Println("Generated Password:", newPassword)
 		} else {
-			newPassword, _ = promptPassword("Password [keep existing]: ")
-			if newPassword == "" {
+			rawPw, err := promptPassword("Password [keep existing]: ")
+			if err != nil {
+				return
+			}
+			if len(rawPw) == 0 {
 				newPassword = entry.Password
+			} else {
+				newPassword = string(rawPw)
+				crypto.ZeroBytes(rawPw)
 			}
 		}
 
 		fmt.Printf("Notes [%s]: ", entry.Notes)
 		newNotes, _ := reader.ReadString('\n')
 		newNotes = strings.TrimSpace(newNotes)
-		// If user wants to clear notes, they might enter a space? We trim space. Let's just say empty means keep existing. 
-		// If they want to clear, maybe they have to use a flag, but for now empty keeps existing.
 		if newNotes == "" {
 			newNotes = entry.Notes
 		}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"golang.org/x/term"
@@ -22,12 +21,35 @@ func getVaultPath() string {
 }
 
 // promptPassword securely prompts the user for a password without echoing.
-func promptPassword(prompt string) (string, error) {
+// Returns a byte slice and zeroes out the raw temporary buffer.
+func promptPassword(prompt string) ([]byte, error) {
 	fmt.Print(prompt)
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println() // print a newline after reading
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return strings.TrimSpace(string(bytePassword)), nil
+
+	start := 0
+	end := len(bytePassword)
+	for start < end && isSpace(bytePassword[start]) {
+		start++
+	}
+	for end > start && isSpace(bytePassword[end-1]) {
+		end--
+	}
+
+	trimmed := make([]byte, end-start)
+	copy(trimmed, bytePassword[start:end])
+
+	// Zero out original raw read buffer
+	for i := range bytePassword {
+		bytePassword[i] = 0
+	}
+
+	return trimmed, nil
+}
+
+func isSpace(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\n' || b == '\v' || b == '\f' || b == '\r'
 }

@@ -27,6 +27,7 @@ var addCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
+		defer crypto.ZeroBytes(masterPw)
 
 		vault, err := storage.LoadVault(path, masterPw)
 		if err != nil {
@@ -53,7 +54,12 @@ var addCmd = &cobra.Command{
 			}
 			fmt.Println("Generated Password:", password)
 		} else {
-			password, _ = promptPassword("Password: ")
+			rawPw, err := promptPassword("Password: ")
+			if err != nil {
+				return
+			}
+			password = string(rawPw)
+			crypto.ZeroBytes(rawPw)
 		}
 
 		fmt.Print("Notes (optional): ")

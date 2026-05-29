@@ -8,10 +8,12 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"password-manager-cli/internal/core"
+	"password-manager-cli/internal/crypto"
 	"password-manager-cli/internal/storage"
 )
 
@@ -47,21 +49,27 @@ var customKeys = listKeyMap{
 	),
 }
 
-// UI Styles
+// Premium UI Styles
 var (
-	titleStyle = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color("205"))
-	appStyle   = lipgloss.NewStyle().Padding(1, 2)
-	errorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-	infoStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	focusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	helpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	titleStyle      = lipgloss.NewStyle().MarginLeft(2).Bold(true).Foreground(lipgloss.Color("141"))
+	appStyle        = lipgloss.NewStyle().Padding(1, 2)
+	errorStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("203")).Bold(true)
+	infoStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Bold(true)
+	focusStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	blurStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	helpStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	detailCardStyle = lipgloss.NewStyle().
+			Border(lipgloss.DoubleBorder()).
+			BorderForeground(lipgloss.Color("141")).
+			Padding(1, 2).
+			MarginLeft(2)
 )
 
 type state int
 
 const (
 	stateLogin state = iota
+	stateDecrypting
 	stateList
 	stateView
 	stateMessage
@@ -86,11 +94,13 @@ func (i item) FilterValue() string { return i.service }
 type model struct {
 	state       state
 	vaultPath   string
-	masterPw    string
+	masterPw    []byte
 	vault       *core.Vault
 	
-	passwordInput textinput.Model
-	servicesList  list.Model
+	passwordInput  textinput.Model
+	servicesList   list.Model
+	spinner        spinner.Model
+	clipboardTimer int
 	
 	formInputs []textinput.Model
 	focusIndex int
@@ -100,6 +110,9 @@ type model struct {
 	msg          string
 	isError      bool
 	auditReport  string
+	
+	width  int
+	height int
 }
 
 func initialModel(vaultPath string) model {
@@ -119,11 +132,16 @@ func initialModel(vaultPath string) model {
 		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete, customKeys.auditLocal, customKeys.auditOnline}
 	}
 
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = titleStyle
+
 	return model{
 		state:         stateLogin,
 		vaultPath:     vaultPath,
 		passwordInput: ti,
 		servicesList:  l,
+		spinner:       s,
 	}
 }
 
@@ -246,6 +264,26 @@ func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+type decryptResultMsg struct {
+	vault *core.Vault
+	err   error
+}
+
+func (m model) decryptVaultCmd() tea.Cmd {
+	return func() tea.Msg {
+		vault, err := storage.LoadVault(m.vaultPath, m.masterPw)
+		return decryptResultMsg{vault: vault, err: err}
+	}
+}
+
+type clipboardTickMsg struct{}
+
+func clipboardTick() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return clipboardTickMsg{}
+	})
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
@@ -262,11 +300,48 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateLogin
 				return m, nil
 			}
+			// Zero out key on exit
+			if m.masterPw != nil {
+				crypto.ZeroBytes(m.masterPw)
+			}
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		h, v := appStyle.GetFrameSize()
 		m.servicesList.SetSize(msg.Width-h, msg.Height-v)
+	case spinner.TickMsg:
+		if m.state == stateDecrypting {
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
+	case decryptResultMsg:
+		if msg.err != nil {
+			m.msg = "Invalid Master Password or Vault not found.\nError: " + msg.err.Error()
+			m.isError = true
+			m.state = stateMessage
+			if m.masterPw != nil {
+				crypto.ZeroBytes(m.masterPw)
+				m.masterPw = nil
+			}
+		} else {
+			m.vault = msg.vault
+			m.updateList()
+			m.state = stateList
+		}
+		return m, nil
+	case clipboardTickMsg:
+		if m.clipboardTimer > 0 {
+			m.clipboardTimer--
+			if m.clipboardTimer == 0 {
+				_ = clipboard.WriteAll("")
+				m.msg = "Clipboard cleared automatically."
+				m.isError = false
+			} else {
+				cmds = append(cmds, clipboardTick())
+			}
+		}
 	}
 
 	switch m.state {
@@ -275,25 +350,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 		if msg, ok := msg.(tea.KeyMsg); ok && msg.Type == tea.KeyEnter {
-			pw := m.passwordInput.Value()
-			vault, err := storage.LoadVault(m.vaultPath, pw)
-			if err != nil {
-				m.msg = "Invalid Master Password or Vault not found.\nError: " + err.Error()
-				m.isError = true
-				m.state = stateMessage
-			} else {
-				m.masterPw = pw
-				m.vault = vault
-				m.updateList()
-				m.state = stateList
-			}
+			rawPw := []byte(m.passwordInput.Value())
+			m.masterPw = make([]byte, len(rawPw))
+			copy(m.masterPw, rawPw)
+			
+			// Zero raw values
+			crypto.ZeroBytes(rawPw)
+			m.passwordInput.SetValue("")
+
+			m.state = stateDecrypting
+			return m, tea.Batch(m.spinner.Tick, m.decryptVaultCmd())
 		}
+	case stateDecrypting:
+		// Let the spinner update handle this
 	case stateList:
 		m.servicesList, cmd = m.servicesList.Update(msg)
 		cmds = append(cmds, cmd)
 
 		if msg, ok := msg.(tea.KeyMsg); ok {
-			// Only allow shortcuts when not filtering
 			if m.servicesList.FilterState() != list.Filtering {
 				switch msg.String() {
 				case "enter":
@@ -321,6 +395,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "R":
 					m.runAudit(true)
 					m.state = stateAudit
+				case "c":
+					if i, ok := m.servicesList.SelectedItem().(item); ok {
+						if err := clipboard.WriteAll(i.password); err != nil {
+							m.msg = "Failed to copy password: " + err.Error()
+							m.isError = true
+						} else {
+							m.msg = "Password copied to clipboard!"
+							m.isError = false
+							m.clipboardTimer = 30
+							cmds = append(cmds, clipboardTick())
+						}
+						m.state = stateMessage
+					}
 				}
 			}
 		}
@@ -331,7 +418,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				s := msg.String()
 				
 				if s == "enter" && m.focusIndex == len(m.formInputs)-1 {
-					// Save
 					service := m.formInputs[0].Value()
 					username := m.formInputs[1].Value()
 					password := m.formInputs[2].Value()
@@ -425,6 +511,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.msg = "Password copied to clipboard!"
 					m.isError = false
+					m.clipboardTimer = 30
+					cmds = append(cmds, clipboardTick())
 				}
 				m.state = stateMessage
 			case "d":
@@ -461,9 +549,60 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.passwordInput.SetValue("")
 			}
 		}
+	case stateAudit:
+		// esc returns to list, handled in global keypress
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m model) renderStrengthMeter() string {
+	pwVal := m.formInputs[2].Value()
+	if len(pwVal) == 0 {
+		return ""
+	}
+
+	score := 0
+	if len(pwVal) >= 12 {
+		score += 2
+	} else if len(pwVal) >= 8 {
+		score++
+	}
+
+	hasUpper := strings.ContainsAny(pwVal, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	hasDigit := strings.ContainsAny(pwVal, "0123456789")
+	hasSpecial := strings.ContainsAny(pwVal, "!@#$%^&*()-_=+[]{}|;:,.<>?")
+
+	if hasUpper {
+		score++
+	}
+	if hasDigit {
+		score++
+	}
+	if hasSpecial {
+		score++
+	}
+
+	var bar string
+	var label string
+	var color lipgloss.Color
+
+	if score <= 2 {
+		bar = "██░░░░"
+		label = "Weak"
+		color = lipgloss.Color("203")
+	} else if score <= 4 {
+		bar = "████░░"
+		label = "Medium"
+		color = lipgloss.Color("228")
+	} else {
+		bar = "██████"
+		label = "Strong"
+		color = lipgloss.Color("120")
+	}
+
+	style := lipgloss.NewStyle().Foreground(color)
+	return fmt.Sprintf("  %s %s", style.Render("Strength: ["+bar+"]"), style.Render(label))
 }
 
 func (m model) View() string {
@@ -475,8 +614,52 @@ func (m model) View() string {
 			titleStyle.Render("Unlock Vault"),
 			m.passwordInput.View(),
 		)
+	case stateDecrypting:
+		s = fmt.Sprintf(
+			"\n\n  %s Deriving keys and decrypting vault...\n\n",
+			m.spinner.View(),
+		)
 	case stateList:
-		s = m.servicesList.View()
+		if m.width >= 80 {
+			// Revamped Modern Split-Screen Layout
+			listWidth := 38
+			m.servicesList.SetSize(listWidth, m.height-4)
+			
+			var detailContent string
+			if selected, ok := m.servicesList.SelectedItem().(item); ok {
+				notes := selected.notes
+				if notes == "" {
+					notes = "(none)"
+				}
+				detailContent = fmt.Sprintf(
+					"%s\n\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n\n%s",
+					titleStyle.Render(selected.service),
+					infoStyle.Render("Username"), selected.username,
+					infoStyle.Render("Password"), "•••••••• (press Enter to view / copy)",
+					infoStyle.Render("Notes"), notes,
+					infoStyle.Render("Created"), selected.createdAt,
+					infoStyle.Render("Updated"), selected.updatedAt,
+					helpStyle.Render("[enter] View Full | [c] Copy | [e] Edit | [d] Delete"),
+				)
+			} else {
+				detailContent = "\n\n  No credentials saved yet.\n  Press [a] to add."
+			}
+			
+			cardWidth := m.width - listWidth - 10
+			cardHeight := m.height - 4
+			card := detailCardStyle.Width(cardWidth).Height(cardHeight).Render(detailContent)
+			
+			s = lipgloss.JoinHorizontal(lipgloss.Top, m.servicesList.View(), card)
+		} else {
+			// Fallback standard full list
+			m.servicesList.SetSize(m.width-4, m.height-4)
+			s = m.servicesList.View()
+		}
+
+		// Clipboard dynamic banner
+		if m.clipboardTimer > 0 {
+			s += fmt.Sprintf("\n\n%s", focusStyle.Render(fmt.Sprintf(" Clipboard clears in %ds...", m.clipboardTimer)))
+		}
 	case stateView:
 		s = fmt.Sprintf(
 			"%s\n\nService: %s\nUsername: %s\nPassword: %s\nNotes: %s\nCreated: %s\nUpdated: %s\n\n[c] Copy Password  [e] Edit  [d] Delete  [esc] Back",
@@ -496,6 +679,9 @@ func (m model) View() string {
 		s = titleStyle.Render(title) + "\n\n"
 		for i := range m.formInputs {
 			s += m.formInputs[i].View() + "\n"
+			if i == 2 {
+				s += m.renderStrengthMeter() + "\n"
+			}
 		}
 		s += "\n\n" + helpStyle.Render("tab/up/down: Move | enter (on last): Save | esc: Cancel")
 	case stateConfirmDelete:
@@ -509,6 +695,9 @@ func (m model) View() string {
 			style = errorStyle
 		}
 		s = fmt.Sprintf("\n%s\n\nPress Enter to continue.", style.Render(m.msg))
+		if m.clipboardTimer > 0 {
+			s += fmt.Sprintf("\n\n%s", focusStyle.Render(fmt.Sprintf(" Clipboard clears in %ds...", m.clipboardTimer)))
+		}
 	case stateAudit:
 		s = m.auditReport
 	}

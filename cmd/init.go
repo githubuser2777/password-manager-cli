@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
@@ -24,13 +25,26 @@ var initCmd = &cobra.Command{
 
 		fmt.Println("Initializing new vault...")
 		pw1, err := promptPassword("Enter Master Password: ")
-		if err != nil || pw1 == "" {
+		if err != nil || len(pw1) == 0 {
 			fmt.Println("Error reading password")
+			return
+		}
+		defer crypto.ZeroBytes(pw1)
+
+		// Validate Master Password strength
+		if err := crypto.ValidateMasterPassword(pw1); err != nil {
+			fmt.Println("Weak Master Password:", err)
 			return
 		}
 
 		pw2, err := promptPassword("Confirm Master Password: ")
-		if err != nil || pw1 != pw2 {
+		if err != nil {
+			fmt.Println("Error reading password confirmation")
+			return
+		}
+		defer crypto.ZeroBytes(pw2)
+
+		if !bytes.Equal(pw1, pw2) {
 			fmt.Println("Passwords do not match!")
 			return
 		}
