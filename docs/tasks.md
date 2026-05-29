@@ -10,11 +10,11 @@ Quy định:
 - [x] Cài đặt package `spf13/cobra` và thiết lập file `main.go`, `cmd/root.go`.
 
 ## Phase 2: Domain Models & Cryptography Module
-- [ ] (internal/core): Định nghĩa struct `Vault` và `Entry`.
-- [ ] (internal/crypto): Cài đặt hàm `DeriveKey(masterPassword string, salt []byte) []byte` sử dụng Argon2id. Cài đặt hàm `GenerateSalt() []byte`.
-- [ ] (internal/crypto): Cài đặt hàm `Encrypt(plaintext, key, nonce []byte) ([]byte, error)` và `Decrypt(ciphertext, key, nonce []byte) ([]byte, error)` sử dụng AES-256-GCM.
-- [ ] (internal/crypto): Cài đặt hàm `GenerateRandomPassword(length int, includeSpecial bool) string`.
-- [ ] Viết Unit Tests kiểm tra tính chính xác của `crypto` module (Mã hóa xong giải mã phải ra dữ liệu gốc).
+- [x] (internal/core): Định nghĩa struct `Vault` và `Entry`.
+- [x] (internal/crypto): Cài đặt hàm `DeriveKey(masterPassword string, salt []byte) []byte` sử dụng Argon2id. Cài đặt hàm `GenerateSalt() []byte`.
+- [x] (internal/crypto): Cài đặt hàm `Encrypt(plaintext, key, nonce []byte) ([]byte, error)` và `Decrypt(ciphertext, key, nonce []byte) ([]byte, error)` sử dụng AES-256-GCM.
+- [x] (internal/crypto): Cài đặt hàm `GenerateRandomPassword(length int, includeSpecial bool) string`.
+- [x] Viết Unit Tests kiểm tra tính chính xác của `crypto` module (Mã hóa xong giải mã phải ra dữ liệu gốc).
 
 ## Phase 3: Storage Module
 - [ ] (internal/storage): Xây dựng hàm `SaveVault(path string, masterPassword string, vault *core.Vault) error` dựa theo Storage Flow (ghi binary Salt + Nonce + Ciphertext).
