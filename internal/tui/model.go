@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,6 +13,28 @@ import (
 	"password-manager-cli/internal/core"
 	"password-manager-cli/internal/storage"
 )
+
+// Custom Keys for Help Menu
+type listKeyMap struct {
+	add    key.Binding
+	edit   key.Binding
+	delete key.Binding
+}
+
+var customKeys = listKeyMap{
+	add: key.NewBinding(
+		key.WithKeys("a"),
+		key.WithHelp("a", "add"),
+	),
+	edit: key.NewBinding(
+		key.WithKeys("e"),
+		key.WithHelp("e", "edit"),
+	),
+	delete: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "delete"),
+	),
+}
 
 // UI Styles
 var (
@@ -76,6 +99,12 @@ func initialModel(vaultPath string) model {
 	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Password Vault"
 	l.Styles.Title = titleStyle
+	l.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete}
+	}
+	l.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{customKeys.add, customKeys.edit, customKeys.delete}
+	}
 
 	return model{
 		state:         stateLogin,
@@ -373,7 +402,6 @@ func (m model) View() string {
 		)
 	case stateList:
 		s = m.servicesList.View()
-		s += "\n" + helpStyle.Render("a: Add | e: Edit | d: Delete | /: Search")
 	case stateView:
 		s = fmt.Sprintf(
 			"%s\n\nService: %s\nUsername: %s\nPassword: %s\nNotes: %s\nCreated: %s\nUpdated: %s\n\n[c] Copy Password  [e] Edit  [d] Delete  [esc] Back",
