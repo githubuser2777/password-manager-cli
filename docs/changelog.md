@@ -2,6 +2,18 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại file này.
 
+## [Phase 4] - 2026-05-29
+### Added
+- Tích hợp package `golang.org/x/term` để nhập Master Password bảo mật, không hiển thị trên màn hình.
+- Tích hợp package `github.com/atotto/clipboard` để hỗ trợ copy password nhanh.
+- Hoàn thiện 5 bộ lệnh (commands) chính thông qua Cobra:
+  - `passmgr init`: Khởi tạo kho chứa mới với mật khẩu chủ.
+  - `passmgr add <service>`: Thêm tài khoản mới, hỗ trợ cờ `-g` sinh password ngẫu nhiên.
+  - `passmgr get <service>`: Lấy password, hỗ trợ cờ `-c` sao chép trực tiếp vào Clipboard.
+  - `passmgr list`: Xem danh sách tất cả các service đã lưu.
+  - `passmgr generate`: Tiện ích tạo mật khẩu nhanh ở màn hình ngoài.
+
+
 ## [Phase 3] - 2026-05-29
 ### Added
 - Thêm module `internal/storage/storage.go` quản lý việc IO đọc/ghi file `vault.enc`.

@@ -22,11 +22,11 @@ Quy định:
 - [x] Viết Unit Tests cho việc lưu và tải vault từ file (dùng thư mục tạm).
 
 ## Phase 4: CLI Commands
-- [ ] (cmd/init.go): Implement lệnh `init`. (Kiểm tra file vault đã tồn tại chưa, hỏi người dùng nhập Master Password ẩn 2 lần để xác nhận, tạo vault rỗng với Salt mới và lưu lại).
-- [ ] (cmd/add.go): Implement lệnh `add <service>`. (Yêu cầu Master Password, load vault, hỏi username/password, lưu lại. Thêm cờ `--generate` để tự sinh password).
-- [ ] (cmd/get.go): Implement lệnh `get <service>`. (Load vault, tìm service, in ra password hoặc sử dụng clipboard để copy).
-- [ ] (cmd/list.go): Implement lệnh `list`. (Load vault, in danh sách các dịch vụ hiện có trong vault).
-- [ ] (cmd/generate.go): Implement lệnh `generate`. (Chỉ sinh password và in ra màn hình, không cần vault).
+- [x] (cmd/init.go): Implement lệnh `init`. (Kiểm tra file vault đã tồn tại chưa, hỏi người dùng nhập Master Password ẩn 2 lần để xác nhận, tạo vault rỗng với Salt mới và lưu lại).
+- [x] (cmd/add.go): Implement lệnh `add <service>`. (Nhập username, nhập password hoặc tự động tạo nếu dùng flag `--generate`).
+- [x] (cmd/get.go): Implement lệnh `get <service>`. (Hiển thị username và password. Hỗ trợ flag `--copy` để tự động copy vào clipboard thay vì in ra màn hình).
+- [x] (cmd/list.go): Implement lệnh `list`. (In ra tất cả các service đã lưu).
+- [x] (cmd/generate.go): Implement lệnh `generate`. (Sinh mật khẩu ngẫu nhiên để dùng ngay).
 
 ## Phase 5: Polish & Build
 - [ ] Đóng gói và viết script build (`Makefile` hoặc `build.sh`).
