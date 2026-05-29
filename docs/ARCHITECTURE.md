@@ -1,66 +1,27 @@
-\# Kiến trúc Hệ thống (System Architecture)
+# System Architecture
 
+## 1. Cryptography Pipeline
 
+The system uses a symmetric encryption mechanism to protect the Vault. Data is never stored as plain-text.
 
-\## 1. Luồng xử lý Mật mã học (Cryptography Pipeline)
+Master Password ──> [ Argon2id + Salt ] ──> Master Key (32 bytes)
+                                                  │
+Plaintext Data  ──> [ AES-256-GCM + Nonce ] <──────┘
+                                                  │
+                                                  ▼
+                                        [ Encrypted Vault File ]
 
+## 2. Storage Mechanism
 
+- Default location: `~/.passmgr/vault.enc`
+- Vault file structure format (Binary):
+  `Salt (16 bytes) + Nonce (12 bytes) + Ciphertext`
 
-Hệ thống sử dụng cơ chế mã hóa đối xứng để bảo vệ Vault. Dữ liệu không bao giờ được lưu dưới dạng plain-text.
+## 3. Cobra Command Tree
 
-
-
-Master Password ──> \[ Argon2id + Salt ] ──> Master Key (32 bytes)
-
-&#x20;                                                  │
-
-Plaintext Data  ──> \[ AES-256-GCM + Nonce ] <──────┘
-
-&#x20;                                                  │
-
-&#x20;                                                  ▼
-
-&#x20;                                        \[ Encrypted Vault File ]
-
-
-
-\## 2. Lưu trữ Dữ liệu (Storage Mechanism)
-
-
-
-\- Vị trí mặc định: `\~/.config/pwdmgr/vault.json` (đối với hệ điều hành Linux/macOS).
-
-\- Định dạng cấu trúc file Vault:
-
-
-
-```json
-
-{
-
-&#x20; "salt": "chuỗi\_base64\_ngẫu\_nhiên",
-
-&#x20; "entries": {
-
-&#x20;   "tên\_dịch\_vụ": "dữ\_liệu\_mã\_hóa\_gcm\_base64"
-
-&#x20; }
-
-}
-
-```
-
-\## 3. Cấu trúc Lệnh CLI (Cobra Command Tree)
-
-
-
-root (pwdmgr)
-
-├── init (Khởi tạo kho chứa)
-
-├── add  (Thêm tài khoản mới)
-
-├── get  (Lấy và giải mã)
-
-└── gen  (Sinh mật khẩu ngẫu nhiên)
-
+root (passmgr)
+├── init (Initialize the vault)
+├── add  (Add a new account)
+├── get  (Retrieve and decrypt)
+├── list (List all saved services)
+└── generate (Generate a random password)

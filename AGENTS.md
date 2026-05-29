@@ -1,35 +1,35 @@
-# Hệ thống Agents cho Antigravity (Spec-Driven Development)
+# Agents System for Antigravity (Spec-Driven Development)
 
-Tài liệu này định hướng cách các Agents trong hệ thống **Antigravity** tương tác, phối hợp và thực thi công việc dựa trên triết lý **Spec-Driven Development (SDD)** (tương tự GSD / GitHub Spec Kit). 
+This document outlines how Agents in the **Antigravity** system interact, coordinate, and execute tasks based on the **Spec-Driven Development (SDD)** philosophy (similar to GSD / GitHub Spec Kit).
 
-Mục tiêu cốt lõi: Ngăn chặn tình trạng "Context Rot" (thất thoát ngữ cảnh khi chat quá dài) và "Vibe Coding" (code cảm tính không có kế hoạch).
-
----
-
-## 1. Cơ chế Định hướng Agent (Agent Routing)
-Các agents không được gắn với các persona sáo rỗng. Phân quyền của chúng dựa trên **Phase (Giai đoạn)** của dự án và **Context (Ngữ cảnh)** hiện tại.
-
-### A. Tác tử Đặc tả (Spec Agent)
-- **Hành vi:** Thu thập dữ liệu đầu vào từ user (ý tưởng, file cũ, báo cáo bug) và đặt câu hỏi để chốt chặt phạm vi (scope).
-- **Trách nhiệm:** Tập trung 100% vào "What" (Chúng ta làm cái gì?) và "Why" (Tại sao phải làm?). KHÔNG viết code hay thiết kế kiến trúc.
-- **Đầu ra (Output):** Tạo/Cập nhật file `docs/spec.md`.
-
-### B. Tác tử Kiến trúc (Planning Agent)
-- **Hành vi:** Tiêu thụ file `docs/spec.md` để phác thảo thiết kế kỹ thuật (System Blueprint).
-- **Trách nhiệm:** Đưa ra quyết định "How" (Làm như thế nào?). Xác định stack, cấu trúc thư mục, API schemas, Data models, và thư viện cần dùng.
-- **Đầu ra (Output):** Tạo/Cập nhật file `docs/plan.md`.
-
-### C. Tác tử Điều phối (Task Agent)
-- **Hành vi:** Chuyển đổi `docs/plan.md` thành một danh sách công việc (checklist) có thể thực thi độc lập.
-- **Trách nhiệm:** Chia nhỏ khối lượng công việc. Nếu một task mất quá nhiều token/bước để xử lý, nó phải được chia nhỏ hơn nữa.
-- **Đầu ra (Output):** Tạo/Cập nhật file `docs/tasks.md`.
-
-### D. Tác tử Lập trình (Code Agent / Editor)
-- **Hành vi:** Đọc file `docs/tasks.md` và thực thi từng task một cách tuần tự.
-- **Trách nhiệm:** Mở file, viết code, sửa lỗi, chạy test. Sau khi xong một task, tự động check `[x]` vào `docs/tasks.md` trước khi sang task mới. Tránh đọc toàn bộ source code nếu không cần thiết.
+Core objective: Prevent "Context Rot" (loss of context when chats get too long) and "Vibe Coding" (coding based on feelings without a plan).
 
 ---
 
-## 2. Giao thức Tương tác (Communication Protocol)
-- **Chuyển giao trạng thái (Handoff):** Khi một Agent kết thúc Phase của mình, nó phải gọi rõ output file để Agent tiếp theo tiếp quản (VD: "Spec hoàn tất tại `docs/spec.md`. Sẵn sàng cho Phase Planning").
-- **Kích hoạt công cụ (Tools):** Khuyến khích sử dụng Command Line Tools (bash/zsh/go/npx) để tự động hóa các thao tác lint, test, hoặc compile ngay trong terminal của Antigravity.
+## 1. Agent Routing Mechanism
+Agents are not tied to cliché personas. Their roles are assigned based on the project's **Phase** and the current **Context**.
+
+### A. Spec Agent
+- **Behavior:** Collects input data from the user (ideas, old files, bug reports) and asks questions to strictly lock down the scope.
+- **Responsibility:** Focuses 100% on "What" (What are we building?) and "Why" (Why does it need to be built?). DOES NOT write code or design architecture.
+- **Output:** Creates/Updates `docs/spec.md`.
+
+### B. Planning Agent
+- **Behavior:** Consumes `docs/spec.md` to draft the technical design (System Blueprint).
+- **Responsibility:** Makes decisions on "How" (How to build it?). Defines the stack, folder structure, API schemas, Data models, and libraries to be used.
+- **Output:** Creates/Updates `docs/plan.md`.
+
+### C. Task Agent
+- **Behavior:** Converts `docs/plan.md` into an independently executable task checklist.
+- **Responsibility:** Breaks down the workload. If a task takes too many tokens/steps to process, it must be broken down further.
+- **Output:** Creates/Updates `docs/tasks.md`.
+
+### D. Code Agent / Editor
+- **Behavior:** Reads `docs/tasks.md` and executes each task sequentially.
+- **Responsibility:** Opens files, writes code, fixes bugs, runs tests. After completing a task, automatically checks `[x]` in `docs/tasks.md` before moving to a new task. Avoids reading the entire source code unless necessary.
+
+---
+
+## 2. Communication Protocol
+- **State Handoff:** When an Agent finishes its Phase, it must explicitly name the output file for the next Agent to take over (e.g., "Spec completed at `docs/spec.md`. Ready for Planning Phase").
+- **Tool Activation:** Encouraged to use Command Line Tools (bash/zsh/go/npx) to automate linting, testing, or compiling directly in Antigravity's terminal.

@@ -1,20 +1,20 @@
 # Product Specification: Password Manager CLI
 
 ## 1. Overview
-Công cụ dòng lệnh (CLI) giúp tạo mật khẩu ngẫu nhiên có độ bảo mật cao và lưu trữ chúng một cách an toàn bằng ngôn ngữ Go. Toàn bộ kho mật khẩu được bảo vệ và giải mã thông qua một Master Password duy nhất.
+A command-line tool (CLI) built with Go that helps generate highly secure random passwords and store them safely. The entire password vault is protected and decrypted via a single Master Password.
 
 ## 2. Target Audience
-- Cá nhân, quản trị viên hệ thống, lập trình viên cần một trình quản lý mật khẩu nhanh chóng, an toàn hoạt động hoàn toàn trên terminal.
+- Individuals, system administrators, and developers who need a fast, secure password manager that operates entirely within the terminal.
 
 ## 3. Core Features
-- `init`: Khởi tạo kho lưu trữ (vault) ban đầu, thiết lập Master Password.
-- `add`: Thêm một tài khoản (Website/App, Username, Password). Tùy chọn tự động sinh mật khẩu cho tài khoản này.
-- `get`: Lấy và giải mã mật khẩu dựa trên tên (yêu cầu xác thực Master Password). Hỗ trợ copy thẳng vào clipboard.
-- `list`: Xem danh sách các dịch vụ đã lưu (không hiển thị mật khẩu thực tế).
-- `generate`: Sinh mật khẩu ngẫu nhiên an toàn, cho phép tùy chỉnh độ dài và loại ký tự.
+- `init`: Initialize the initial vault storage and set the Master Password.
+- `add`: Add an account (Website/App, Username, Password). Option to auto-generate a password for this account.
+- `get`: Retrieve and decrypt a password based on the name (requires Master Password authentication). Supports copying directly to the clipboard.
+- `list`: View a list of saved services (does not display actual passwords).
+- `generate`: Generate a secure random password, allowing customization of length and character types.
 
 ## 4. Security Requirements
-- **Encryption**: Dữ liệu phải được mã hóa bằng AES-256 ở chế độ GCM (đảm bảo cả tính bảo mật và tính toàn vẹn của dữ liệu).
-- **Key Derivation**: Sử dụng thuật toán `Argon2id` để băm Master Password, chống lại các cuộc tấn công Brute-force và Dictionary attack.
-- **Storage**: Mật khẩu được mã hóa nguyên khối và lưu cục bộ tại máy tính của người dùng (vd: `~/.passmgr/vault.enc`).
-- **Memory Security**: Khi nhập Master Password trên terminal, ký tự không được phép hiển thị ra màn hình.
+- **Encryption**: Data must be encrypted using AES-256 in GCM mode (ensuring both data confidentiality and integrity).
+- **Key Derivation**: Use the `Argon2id` algorithm to hash the Master Password, defending against Brute-force and Dictionary attacks.
+- **Storage**: Passwords are encrypted as a monolith and stored locally on the user's computer (e.g., `~/.passmgr/vault.enc`).
+- **Memory Security**: When entering the Master Password in the terminal, characters must not be displayed on the screen.

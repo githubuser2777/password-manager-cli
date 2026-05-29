@@ -1,33 +1,33 @@
 # Execution Checklist
 
-Quy định: 
-1. Khi hoàn thành một task, Code Agent sẽ đánh dấu `[x]` tương ứng. Nếu một task quá phức tạp, chủ động chia nhỏ thêm trong file này.
-2. Tuân thủ tuyệt đối `rules.md`: **Không mở/đọc quá 5 file cùng lúc**; **Bắt buộc viết comment** cho các logic mã hóa phức tạp.
+Rules: 
+1. Upon completing a task, the Code Agent will mark it with an `[x]`. If a task is too complex, proactively break it down further in this file.
+2. Strictly adhere to `rules.md`: **Do not open/read more than 5 files at once**; **Mandatory comments** for complex cryptographic logic.
 
 ## Phase 1: Foundation
-- [x] Khởi tạo thư mục và Go module (`go mod init github.com/yourusername/password-manager-cli` hoặc tương tự).
-- [x] Thiết lập cấu trúc thư mục: `cmd/`, `internal/crypto/`, `internal/storage/`, `internal/core/`.
-- [x] Cài đặt package `spf13/cobra` và thiết lập file `main.go`, `cmd/root.go`.
+- [x] Initialize directory and Go module (`go mod init password-manager-cli`).
+- [x] Set up directory structure: `cmd/`, `internal/crypto/`, `internal/storage/`, `internal/core/`.
+- [x] Install the `spf13/cobra` package and set up `main.go`, `cmd/root.go`.
 
 ## Phase 2: Domain Models & Cryptography Module
-- [x] (internal/core): Định nghĩa struct `Vault` và `Entry`.
-- [x] (internal/crypto): Cài đặt hàm `DeriveKey(masterPassword string, salt []byte) []byte` sử dụng Argon2id. Cài đặt hàm `GenerateSalt() []byte`.
-- [x] (internal/crypto): Cài đặt hàm `Encrypt(plaintext, key, nonce []byte) ([]byte, error)` và `Decrypt(ciphertext, key, nonce []byte) ([]byte, error)` sử dụng AES-256-GCM.
-- [x] (internal/crypto): Cài đặt hàm `GenerateRandomPassword(length int, includeSpecial bool) string`.
-- [x] Viết Unit Tests kiểm tra tính chính xác của `crypto` module (Mã hóa xong giải mã phải ra dữ liệu gốc).
+- [x] (internal/core): Define `Vault` and `Entry` structs.
+- [x] (internal/crypto): Implement `DeriveKey(masterPassword string, salt []byte) []byte` using Argon2id. Implement `GenerateSalt() []byte`.
+- [x] (internal/crypto): Implement `Encrypt(plaintext, key, nonce []byte) ([]byte, error)` and `Decrypt(ciphertext, key, nonce []byte) ([]byte, error)` using AES-256-GCM.
+- [x] (internal/crypto): Implement `GenerateRandomPassword(length int, includeSpecial bool) string`.
+- [x] Write Unit Tests to verify the accuracy of the `crypto` module (Encrypting and decrypting must yield the original data).
 
 ## Phase 3: Storage Module
-- [x] (internal/storage): Xây dựng hàm `SaveVault(path string, masterPassword string, vault *core.Vault) error` dựa theo Storage Flow (ghi binary Salt + Nonce + Ciphertext).
-- [x] (internal/storage): Xây dựng hàm `LoadVault(path string, masterPassword string) (*core.Vault, error)`.
-- [x] Viết Unit Tests cho việc lưu và tải vault từ file (dùng thư mục tạm).
+- [x] (internal/storage): Build the `SaveVault(path string, masterPassword string, vault *core.Vault) error` function based on the Storage Flow (write binary Salt + Nonce + Ciphertext).
+- [x] (internal/storage): Build the `LoadVault(path string, masterPassword string) (*core.Vault, error)` function.
+- [x] Write Unit Tests for saving and loading the vault from a file (using a temporary directory).
 
 ## Phase 4: CLI Commands
-- [x] (cmd/init.go): Implement lệnh `init`. (Kiểm tra file vault đã tồn tại chưa, hỏi người dùng nhập Master Password ẩn 2 lần để xác nhận, tạo vault rỗng với Salt mới và lưu lại).
-- [x] (cmd/add.go): Implement lệnh `add <service>`. (Nhập username, nhập password hoặc tự động tạo nếu dùng flag `--generate`).
-- [x] (cmd/get.go): Implement lệnh `get <service>`. (Hiển thị username và password. Hỗ trợ flag `--copy` để tự động copy vào clipboard thay vì in ra màn hình).
-- [x] (cmd/list.go): Implement lệnh `list`. (In ra tất cả các service đã lưu).
-- [x] (cmd/generate.go): Implement lệnh `generate`. (Sinh mật khẩu ngẫu nhiên để dùng ngay).
+- [x] (cmd/init.go): Implement `init` command. (Check if vault exists, prompt for hidden Master Password twice to confirm, create an empty vault with a new Salt and save it).
+- [x] (cmd/add.go): Implement `add <service>` command. (Input username, input password or auto-generate if using the `--generate` flag).
+- [x] (cmd/get.go): Implement `get <service>` command. (Display username and password. Support the `--copy` flag to auto-copy to clipboard instead of printing to screen).
+- [x] (cmd/list.go): Implement `list` command. (Print all saved services).
+- [x] (cmd/generate.go): Implement `generate` command. (Generate a random password for immediate use).
 
 ## Phase 5: Polish & Build
-- [x] Đóng gói và viết script build (`Makefile` hoặc `build.ps1`).
-- [x] Viết tài liệu `README.md` hướng dẫn sử dụng công cụ.
+- [x] Package and write build scripts (`Makefile` or `build.ps1`).
+- [x] Write the `README.md` document with instructions for using the tool.

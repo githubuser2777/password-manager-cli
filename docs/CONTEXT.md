@@ -1,20 +1,13 @@
-\# Bản đồ Ngữ cảnh (Source Code Mapping)
+# Source Code Mapping (Context)
 
+## 1. Module Locations
 
+- `internal/crypto/`: Contains Argon2id hashing and AES-GCM encryption logic. If the encryption algorithm needs modification, only intervene in this area.
+- `internal/storage/`: Contains reading/writing logic interacting with the file system securely (Atomic Write).
+- `internal/core/`: Contains the domain models (`Vault`, `Entry`).
+- `cmd/`: Contains definitions for the Cobra CLI interface.
 
-\## 1. Định vị Module
+## 2. Read/Write Rules for Agents
 
-\- `internal/crypto/`: Chứa logic băm Argon2id và mã hóa AES-GCM. Nếu cần sửa thuật toán mã hóa, chỉ can thiệp vùng này.
-
-\- `internal/vault/`: Chứa các hàm `Read()`, `Write()`, `Modify()` tương tác với hệ thống tệp.
-
-\- `cmd/`: Chứa định nghĩa giao diện CLI của Cobra.
-
-
-
-\## 2. Quy tắc Đọc/Ghi dành cho Agent
-
-\- Khi có yêu cầu thay đổi tính năng: Cập nhật `docs/FEATURES.md` trước, sau đó mới tiến hành sửa code ở thư mục `cmd/`.
-
-\- Khi cần tối ưu hóa hiệu năng hoặc bảo mật: Đối chiếu với `docs/SECURITY.md` để đảm bảo không vi phạm các nguyên tắc cốt lõi.
-
+- When a feature change is requested: Update specifications first, then proceed to modify the code in the `cmd/` directory.
+- When optimizing performance or security: Cross-check with `.github/SECURITY.md` to ensure core principles are not violated.

@@ -1,36 +1,25 @@
-\# Đặc tả Tính năng (Features Specification)
+# Features Specification
 
+## 1. `init` Command
 
+- **Behavior:** Prompts the user to enter a Master Password (hides characters during input).
+- **Processing:** Generates a random Salt, initializes an empty vault, and saves it securely to the file system.
 
-\## 1. Lệnh `init`
+## 2. `add <service_name>` Command
 
-\- \*\*Hành vi:\*\* Yêu cầu người dùng nhập Master Password (ẩn ký tự khi nhập).
+- **Behavior:** Receives the service name from the argument. Prompts for the username and password to be saved (or auto-generates if `-g` is used).
+- **Processing:** Checks if the vault file exists. If so, decrypts it, inserts the new entry, re-encrypts the entirety, and overwrites the file securely.
 
-\- \*\*Xử lý:\*\* Sinh Salt ngẫu nhiên, khởi tạo file cấu trúc JSON trống, thiết lập quyền file `0600`.
+## 3. `get <service_name>` Command
 
+- **Behavior:** Prompts for the Master Password, decrypts the corresponding entry, and prints it to the screen.
+- **Options:** Supports the `-c` or `--copy` flag to copy directly to the clipboard instead of printing to the terminal.
 
+## 4. `list` Command
 
-\## 2. Lệnh `add <service\\\_name>`
+- **Behavior:** Prints out all saved services (without their passwords) so the user can see what's in the vault.
 
-\- \*\*Hành vi:\*\* Nhận tên dịch vụ từ đối số. Yêu cầu nhập tài khoản và mật khẩu cần lưu.
+## 5. `generate` Command
 
-\- \*\*Xử lý:\*\* Kiểm tra file vault đã tồn tại chưa. Nếu có, giải mã, chèn thêm entry mới, mã hóa lại toàn bộ và ghi đè file.
-
-
-
-\## 3. Lệnh `get <service\\\_name>`
-
-\- \*\*Hành vi:\*\* Yêu cầu Master Password, giải mã entry tương ứng và in ra màn hình.
-
-\- \*\*Tùy chọn:\*\* Hỗ trợ flag `--clip` để copy thẳng vào clipboard thay vì in ra terminal (tự động xóa clipboard sau 10 giây).
-
-
-
-\## 4. Lệnh `gen`
-
-\- \*\*Hành vi:\*\* Sinh chuỗi ngẫu nhiên dựa trên `crypto/rand`.
-
-\- \*\*Cấu hình mặc định:\*\* Độ dài 16 ký tự, bao gồm \[A-Z], \[a-z], \[0-9], và ký tự đặc biệt.
-
-
-
+- **Behavior:** Generates a secure random string based on `crypto/rand`.
+- **Options:** Customizable length. Can omit special characters using `-n`.
