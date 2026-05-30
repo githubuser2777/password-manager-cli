@@ -55,3 +55,14 @@ Rules:
 - [x] **Task 6.5 (Verification & Testing):**
   - [x] Update unit tests for `crypto` and `storage` to achieve coverage for new validations, dynamic params, and legacy vault migrations.
   - [x] Compile and verify binary functionality, manual testing of revamped TUI dashboard, spinner, and clipboard auto-clears.
+
+## Phase 7: Refactoring & Code Quality
+- [x] **Task 7.1 (Testing Strategy - core & cmd):**
+  - [x] Write unit tests for `internal/core` struct integrity.
+  - [x] Refactor `cmd` functions to separate cobra boilerplate from testable business logic.
+  - [x] Write unit tests for the core CLI commands using mock stdin/stdout and temporary directories.
+- [x] **Task 7.2 (Testing Strategy - tui):**
+  - [x] Write Bubble Tea update loop tests for `internal/tui`.
+- [x] **Task 7.3 (Linting & Optimizations):**
+  - [x] Run `go fmt ./...` and `go vet ./...` natively and fix any issues found.
+  - [x] Review data structures for memory leakage or unnecessary copies of sensitive fields.

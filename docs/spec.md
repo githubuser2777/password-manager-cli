@@ -29,3 +29,8 @@ A command-line tool (CLI) built with Go that helps generate highly secure random
 - **Memory Security**: Prompt passwords securely, handle keys/passwords in `[]byte` buffers instead of immutable `string` types where possible, and zero out memory buffers immediately after use.
 - **Clipboard Security**: Any password copied to the clipboard must be securely overwritten with a blank value after exactly 30 seconds, both in the CLI and the TUI, without blocking the user interface.
 - **Storage**: Passwords are encrypted and saved using an atomic write mechanism (temp file write followed by rename) to prevent corruption.
+
+## 5. Refactoring & Code Quality Goals
+- **Code Coverage**: Write comprehensive unit tests for `cmd`, `internal/core`, and `internal/tui` to bring coverage up from 0% to a healthy standard.
+- **Linting & Code Formatting**: Ensure the codebase adheres to strict Go linting standards (e.g. `go vet`, `staticcheck`). 
+- **Optimizations**: Perform code reviews to identify memory optimization opportunities, especially concerning sensitive data handling.

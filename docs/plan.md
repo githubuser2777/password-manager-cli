@@ -74,3 +74,19 @@ Instead of doing a silent, blocking `time.Sleep`, `passmgr get -c` will:
    - Spin off a Bubble Tea command performing key derivation asynchronously, preventing thread hang.
 5. **Non-Blocking Clipboard Timer Tick**:
    - In TUI, copying credentials triggers a background tick counting down from 30 seconds. Display remaining time at the bottom status bar and zero out clipboard safely upon expiration.
+
+## 3. Refactoring & Code Quality
+
+### A. Testing Strategy & Coverage
+- **`cmd` Package**: Extract testable logic from Cobra commands. Mock `os.Stdin` and `os.Stdout` to test CLI inputs and outputs without actually starting the app. Use temporary directories for the mock vault.
+- **`internal/core` Package**: Write unit tests for the `Vault` and `Entry` structs. Ensure data integrity when converting between JSON and memory.
+- **`internal/tui` Package**: Implement `tea.TestModel` tests or simulate keypress events (`tea.KeyMsg`) to verify state transitions in the TUI (e.g. searching, entering master password).
+
+### B. Linting & Formatting
+- Continue utilizing `go vet ./...` natively.
+- Enforce standard formatting across the codebase with `go fmt ./...`.
+- Add explicit checks for shadowed variables and unhandled errors.
+
+### C. Optimizations
+- **File IO**: Ensure memory mapped reading/writing when loading/saving the Vault if feasible, or ensure buffers are perfectly sized.
+- **Memory Security**: Ensure that the garbage collector is not leaving lingering slice references in tests and edge cases.

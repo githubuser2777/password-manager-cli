@@ -75,7 +75,7 @@ func TestLegacyV1VaultCompatibility(t *testing.T) {
 
 	salt, _ := crypto.GenerateSalt(16)
 	nonce, _ := crypto.GenerateNonce()
-	
+
 	// Encode JSON data
 	dummyVault := core.Vault{
 		Salt: salt,

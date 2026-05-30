@@ -92,25 +92,25 @@ func (i item) Description() string { return i.username }
 func (i item) FilterValue() string { return i.service }
 
 type model struct {
-	state       state
-	vaultPath   string
-	masterPw    []byte
-	vault       *core.Vault
-	
+	state     state
+	vaultPath string
+	masterPw  []byte
+	vault     *core.Vault
+
 	passwordInput  textinput.Model
 	servicesList   list.Model
 	spinner        spinner.Model
 	clipboardTimer int
-	
+
 	formInputs []textinput.Model
 	focusIndex int
 	isEditing  bool
-	
+
 	selectedItem item
 	msg          string
 	isError      bool
 	auditReport  string
-	
+
 	width  int
 	height int
 }
@@ -147,7 +147,7 @@ func initialModel(vaultPath string) model {
 
 func (m *model) setupForm(service, username, password, notes string, isEdit bool) {
 	m.formInputs = make([]textinput.Model, 4)
-	
+
 	var t textinput.Model
 	for i := range m.formInputs {
 		t = textinput.New()
@@ -353,7 +353,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			rawPw := []byte(m.passwordInput.Value())
 			m.masterPw = make([]byte, len(rawPw))
 			copy(m.masterPw, rawPw)
-			
+
 			// Zero raw values
 			crypto.ZeroBytes(rawPw)
 			m.passwordInput.SetValue("")
@@ -416,7 +416,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "tab", "shift+tab", "enter", "up", "down":
 				s := msg.String()
-				
+
 				if s == "enter" && m.focusIndex == len(m.formInputs)-1 {
 					service := m.formInputs[0].Value()
 					username := m.formInputs[1].Value()
@@ -426,7 +426,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if service == "" {
 						break
 					}
-					
+
 					entry, exists := m.vault.Entries[service]
 					if m.isEditing {
 						entry.Username = username
@@ -447,7 +447,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							CreatedAt: time.Now().Format(time.RFC3339),
 						}
 					}
-					
+
 					m.vault.Entries[service] = entry
 					if err := storage.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
 						m.msg = "Failed to save vault: " + err.Error()
@@ -472,7 +472,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.focusIndex < 0 {
 					m.focusIndex = len(m.formInputs) - 1
 				}
-				
+
 				if m.isEditing && m.focusIndex == 0 {
 					if s == "up" || s == "shift+tab" {
 						m.focusIndex = len(m.formInputs) - 1
@@ -495,12 +495,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, textinput.Blink
 			}
 		}
-		
+
 		for i := range m.formInputs {
 			m.formInputs[i], cmd = m.formInputs[i].Update(msg)
 			cmds = append(cmds, cmd)
 		}
-		
+
 	case stateView:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
@@ -624,7 +624,7 @@ func (m model) View() string {
 			// Revamped Modern Split-Screen Layout
 			listWidth := 38
 			m.servicesList.SetSize(listWidth, m.height-4)
-			
+
 			var detailContent string
 			if selected, ok := m.servicesList.SelectedItem().(item); ok {
 				notes := selected.notes
@@ -644,11 +644,11 @@ func (m model) View() string {
 			} else {
 				detailContent = "\n\n  No credentials saved yet.\n  Press [a] to add."
 			}
-			
+
 			cardWidth := m.width - listWidth - 10
 			cardHeight := m.height - 4
 			card := detailCardStyle.Width(cardWidth).Height(cardHeight).Render(detailContent)
-			
+
 			s = lipgloss.JoinHorizontal(lipgloss.Top, m.servicesList.View(), card)
 		} else {
 			// Fallback standard full list

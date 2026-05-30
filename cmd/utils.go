@@ -11,7 +11,7 @@ import (
 
 // getVaultPath returns the absolute path to the vault.enc file.
 // Defaults to ~/.passmgr/vault.enc
-func getVaultPath() string {
+var getVaultPath = func() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error getting home directory:", err)
@@ -22,7 +22,7 @@ func getVaultPath() string {
 
 // promptPassword securely prompts the user for a password without echoing.
 // Returns a byte slice and zeroes out the raw temporary buffer.
-func promptPassword(prompt string) ([]byte, error) {
+var promptPassword = func(prompt string) ([]byte, error) {
 	fmt.Print(prompt)
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println() // print a newline after reading
