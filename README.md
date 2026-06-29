@@ -1,8 +1,10 @@
 # passmgr
 
-Command-line password manager. Local vault, AES-256-GCM encryption, Argon2id key derivation.
+A CLI password manager with a local vault. Secured by AES-256-GCM and Argon2id.
 
-## Build
+## Installation
+
+Requires Go 1.21 or later.
 
 ```sh
 go build -o passmgr
@@ -11,36 +13,39 @@ go build -o passmgr
 ## Quick Start
 
 ```sh
-passmgr init    # Initialize your vault
-passmgr         # Open interactive TUI
+passmgr init  # Initialize vault at ~/.passmgr/vault.enc
+passmgr       # Open the interactive TUI
 ```
-Vault is stored at `~/.passmgr/vault.enc`.
 
 ## Usage
 
-### TUI Keybindings
-- `a`: Add
-- `e`: Edit
-- `d`: Delete
-- `c`: Copy password to clipboard
-- `Enter`: View details
-- `/`: Search
-- `r` / `R`: Security audit (Local / HaveIBeenPwned API)
+### Interactive TUI
 
-### CLI Operations
+Run `passmgr` without arguments to enter the TUI.
+
+* `a`: Add entry
+* `e`: Edit entry
+* `d`: Delete entry
+* `c`: Copy password
+* `Enter`: View details
+* `/`: Search
+* `r` / `R`: Security audit (Local / HaveIBeenPwned)
+
+### CLI Commands
+
 ```sh
 passmgr init
-passmgr add github.com [-g]        # -g generates password
-passmgr get github.com [-c]        # -c copies to clipboard
-passmgr update github.com
-passmgr delete github.com
-passmgr search "git"
-passmgr list
-passmgr generate 20
-passmgr audit
-passmgr export
-passmgr import
-passmgr changepass
+passmgr add <domain> [-g]    # Add entry (-g to auto-generate)
+passmgr get <domain> [-c]    # View entry (-c to copy password)
+passmgr update <domain>      # Edit entry
+passmgr delete <domain>      # Delete entry
+passmgr search <query>       # Search entries
+passmgr list                 # List all domains
+passmgr generate <len>       # Generate random password
+passmgr audit                # Run security audit
+passmgr export               # Export vault (JSON)
+passmgr import               # Import vault (JSON)
+passmgr changepass           # Change master password
 ```
 
-<!-- ponytail: Removed marketing fluff (e.g. "beautiful", "state-of-the-art"). Kept only essential technical facts, build commands, and reference. YAGNI. -->
+<!-- ponytail: Kept README strictly technical. Added clearer structure (Installation, TUI vs CLI layout). No badges, no fluff, no unnecessary sections. YAGNI. -->
