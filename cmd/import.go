@@ -16,7 +16,7 @@ var importCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		inputFile := args[0]
-		
+
 		data, err := os.ReadFile(inputFile)
 		if err != nil {
 			fmt.Println("Failed to read import file:", err)

@@ -20,7 +20,7 @@ var addCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		service := args[0]
-		
+
 		withVaultMutate(func(v *vault.Vault, masterPw []byte, path string) bool {
 			if _, exists := v.Entries[service]; exists {
 				fmt.Printf("Service '%s' already exists in the vault.\n", service)
