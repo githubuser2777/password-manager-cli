@@ -1,13 +1,10 @@
-package storage
+package vault
 
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"password-manager-cli/internal/core"
-	"password-manager-cli/internal/crypto"
 )
 
 func TestSaveAndLoadVault(t *testing.T) {
@@ -17,10 +14,10 @@ func TestSaveAndLoadVault(t *testing.T) {
 	masterPw := []byte("super_secret_master_password_123!")
 
 	// Create a dummy vault
-	salt, _ := crypto.GenerateSalt(16)
-	originalVault := &core.Vault{
+	salt, _ := GenerateSalt(16)
+	originalVault := &Vault{
 		Salt: salt,
-		Entries: map[string]core.Entry{
+		Entries: map[string]Entry{
 			"github.com": {
 				Username:  "admin",
 				Password:  "password123",
@@ -73,13 +70,13 @@ func TestLegacyV1VaultCompatibility(t *testing.T) {
 	vaultPath := filepath.Join(dir, "legacy_vault.enc")
 	masterPw := []byte("legacy_pass_123")
 
-	salt, _ := crypto.GenerateSalt(16)
-	nonce, _ := crypto.GenerateNonce()
+	salt, _ := GenerateSalt(16)
+	nonce, _ := GenerateNonce()
 
 	// Encode JSON data
-	dummyVault := core.Vault{
+	dummyVault := Vault{
 		Salt: salt,
-		Entries: map[string]core.Entry{
+		Entries: map[string]Entry{
 			"legacy.com": {
 				Username: "legacy_user",
 				Password: "legacy_password",
@@ -89,8 +86,8 @@ func TestLegacyV1VaultCompatibility(t *testing.T) {
 	jsonData, _ := json.Marshal(&dummyVault)
 
 	// Derive V1 key using standard defaults
-	key := crypto.DeriveKeyWithParams(masterPw, salt, 1, 64*1024, 4)
-	ciphertext, _ := crypto.Encrypt(jsonData, key, nonce)
+	key := DeriveKeyWithParams(masterPw, salt, 1, 64*1024, 4)
+	ciphertext, _ := Encrypt(jsonData, key, nonce)
 
 	// Combine to build V1 file data
 	var fileData []byte

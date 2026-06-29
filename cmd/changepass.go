@@ -3,10 +3,9 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"password-manager-cli/internal/vault"
 
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 var changepassCmd = &cobra.Command{
@@ -14,54 +13,42 @@ var changepassCmd = &cobra.Command{
 	Short: "Change the Master Password",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		path := getVaultPath()
+		withVault(func(v *vault.Vault, oldPw []byte, path string) {
+			newPw1, err := promptPassword("New Master Password: ")
+			if err != nil {
+				return
+			}
+			defer clear(newPw1)
 
-		oldPw, err := promptPassword("Current Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(oldPw)
+			// Validate Master Password strength
+			if err := vault.ValidateMasterPassword(newPw1); err != nil {
+				fmt.Println("Weak Master Password:", err)
+				return
+			}
 
-		vault, err := storage.LoadVault(path, oldPw)
-		if err != nil {
-			fmt.Println("Failed to open vault (incorrect current password?):", err)
-			return
-		}
+			newPw2, err := promptPassword("Confirm New Master Password: ")
+			if err != nil {
+				return
+			}
+			defer clear(newPw2)
 
-		newPw1, err := promptPassword("New Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(newPw1)
+			if !bytes.Equal(newPw1, newPw2) {
+				fmt.Println("Passwords do not match. Aborting.")
+				return
+			}
 
-		// Validate Master Password strength
-		if err := crypto.ValidateMasterPassword(newPw1); err != nil {
-			fmt.Println("Weak Master Password:", err)
-			return
-		}
+			if len(newPw1) == 0 {
+				fmt.Println("Password cannot be empty.")
+				return
+			}
 
-		newPw2, err := promptPassword("Confirm New Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(newPw2)
+			if err := vault.SaveVault(path, newPw1, v); err != nil {
+				fmt.Println("Failed to save vault with new password:", err)
+				return
+			}
 
-		if !bytes.Equal(newPw1, newPw2) {
-			fmt.Println("Passwords do not match. Aborting.")
-			return
-		}
-
-		if len(newPw1) == 0 {
-			fmt.Println("Password cannot be empty.")
-			return
-		}
-
-		if err := storage.SaveVault(path, newPw1, vault); err != nil {
-			fmt.Println("Failed to save vault with new password:", err)
-			return
-		}
-
-		fmt.Println("Master Password changed successfully!")
+			fmt.Println("Master Password changed successfully!")
+		})
 	},
 }
 

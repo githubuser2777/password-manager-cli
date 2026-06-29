@@ -2,10 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"password-manager-cli/internal/vault"
 
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 var deleteCmd = &cobra.Command{
@@ -15,33 +14,16 @@ var deleteCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		service := args[0]
-		path := getVaultPath()
+		withVaultMutate(func(v *vault.Vault, masterPw []byte, path string) bool {
+			if _, exists := v.Entries[service]; !exists {
+				fmt.Printf("Service '%s' not found in the vault.\n", service)
+				return false
+			}
 
-		masterPw, err := promptPassword("Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(masterPw)
-
-		vault, err := storage.LoadVault(path, masterPw)
-		if err != nil {
-			fmt.Println("Failed to open vault:", err)
-			return
-		}
-
-		if _, exists := vault.Entries[service]; !exists {
-			fmt.Printf("Service '%s' not found in the vault.\n", service)
-			return
-		}
-
-		delete(vault.Entries, service)
-
-		if err := storage.SaveVault(path, masterPw, vault); err != nil {
-			fmt.Println("Failed to save vault:", err)
-			return
-		}
-
-		fmt.Printf("Successfully deleted '%s' from the vault.\n", service)
+			delete(v.Entries, service)
+			fmt.Printf("Successfully deleted '%s' from the vault.\n", service)
+			return true
+		})
 	},
 }
 

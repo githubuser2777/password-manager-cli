@@ -2,37 +2,26 @@ package cmd
 
 import (
 	"fmt"
+	"password-manager-cli/internal/vault"
 
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/storage"
 )
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all saved services",
 	Run: func(cmd *cobra.Command, args []string) {
-		path := getVaultPath()
+		withVault(func(v *vault.Vault, masterPw []byte, path string) {
+			if len(v.Entries) == 0 {
+				fmt.Println("Vault is empty.")
+				return
+			}
 
-		masterPw, err := promptPassword("Master Password: ")
-		if err != nil {
-			return
-		}
-
-		vault, err := storage.LoadVault(path, masterPw)
-		if err != nil {
-			fmt.Println("Failed to open vault:", err)
-			return
-		}
-
-		if len(vault.Entries) == 0 {
-			fmt.Println("Vault is empty.")
-			return
-		}
-
-		fmt.Println("Saved services:")
-		for service, entry := range vault.Entries {
-			fmt.Printf("- %s (Username: %s)\n", service, entry.Username)
-		}
+			fmt.Println("Saved services:")
+			for service, entry := range v.Entries {
+				fmt.Printf("- %s (Username: %s)\n", service, entry.Username)
+			}
+		})
 	},
 }
 

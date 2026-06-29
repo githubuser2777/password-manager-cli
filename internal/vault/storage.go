@@ -1,4 +1,4 @@
-package storage
+package vault
 
 import (
 	"encoding/binary"
@@ -6,9 +6,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-
-	"password-manager-cli/internal/core"
-	"password-manager-cli/internal/crypto"
 )
 
 const (
@@ -25,7 +22,7 @@ var (
 
 // SaveVault safely writes the vault to the specified path using the V2 format.
 // It uses atomic writing (write to temp file, then rename) to prevent corruption.
-func SaveVault(path string, masterPassword []byte, vault *core.Vault) error {
+func SaveVault(path string, masterPassword []byte, vault *Vault) error {
 	if len(vault.Salt) != saltLen {
 		return errors.New("invalid vault salt length")
 	}
@@ -35,20 +32,20 @@ func SaveVault(path string, masterPassword []byte, vault *core.Vault) error {
 	if err != nil {
 		return err
 	}
-	defer crypto.ZeroBytes(jsonData) // Securely zero out JSON plaintext
+	defer ZeroBytes(jsonData) // Securely zero out JSON plaintext
 
 	// 2. Generate Nonce
-	nonce, err := crypto.GenerateNonce()
+	nonce, err := GenerateNonce()
 	if err != nil {
 		return err
 	}
 
 	// 3. Derive Key with V2 parameters
-	key := crypto.DeriveKeyWithParams(masterPassword, vault.Salt, ArgonTime, ArgonMemory, ArgonThreads)
-	defer crypto.ZeroBytes(key) // Securely zero out derived key
+	key := DeriveKeyWithParams(masterPassword, vault.Salt, ArgonTime, ArgonMemory, ArgonThreads)
+	defer ZeroBytes(key) // Securely zero out derived key
 
 	// 4. Encrypt JSON data
-	ciphertext, err := crypto.Encrypt(jsonData, key, nonce)
+	ciphertext, err := Encrypt(jsonData, key, nonce)
 	if err != nil {
 		return err
 	}
@@ -96,7 +93,7 @@ func SaveVault(path string, masterPassword []byte, vault *core.Vault) error {
 
 // LoadVault reads and decrypts the vault from the specified path.
 // It supports both V1 (Legacy) and V2 (Modern with Magic Bytes) vault formats.
-func LoadVault(path string, masterPassword []byte) (*core.Vault, error) {
+func LoadVault(path string, masterPassword []byte) (*Vault, error) {
 	fileData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -143,18 +140,18 @@ func LoadVault(path string, masterPassword []byte) (*core.Vault, error) {
 	}
 
 	// 2. Derive Key
-	key := crypto.DeriveKeyWithParams(masterPassword, salt, time, memory, threads)
-	defer crypto.ZeroBytes(key) // Securely zero out derived key
+	key := DeriveKeyWithParams(masterPassword, salt, time, memory, threads)
+	defer ZeroBytes(key) // Securely zero out derived key
 
 	// 3. Decrypt
-	jsonData, err := crypto.Decrypt(ciphertext, key, nonce)
+	jsonData, err := Decrypt(ciphertext, key, nonce)
 	if err != nil {
 		return nil, errors.New("invalid master password or corrupted data")
 	}
-	defer crypto.ZeroBytes(jsonData) // Securely zero out JSON plaintext
+	defer ZeroBytes(jsonData) // Securely zero out JSON plaintext
 
 	// 4. Unmarshal
-	var vault core.Vault
+	var vault Vault
 	if err := json.Unmarshal(jsonData, &vault); err != nil {
 		return nil, err
 	}

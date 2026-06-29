@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"password-manager-cli/internal/vault"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 var searchCmd = &cobra.Command{
@@ -15,35 +14,23 @@ var searchCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		keyword := strings.ToLower(args[0])
-		path := getVaultPath()
+		withVault(func(v *vault.Vault, masterPw []byte, path string) {
+			fmt.Printf("\nSearch results for '%s':\n", args[0])
+			fmt.Println("----------------------------------------")
 
-		masterPw, err := promptPassword("Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(masterPw)
-
-		vault, err := storage.LoadVault(path, masterPw)
-		if err != nil {
-			fmt.Println("Failed to open vault:", err)
-			return
-		}
-
-		fmt.Printf("\nSearch results for '%s':\n", args[0])
-		fmt.Println("----------------------------------------")
-
-		found := false
-		for service, entry := range vault.Entries {
-			if strings.Contains(strings.ToLower(service), keyword) || strings.Contains(strings.ToLower(entry.Username), keyword) {
-				fmt.Printf("- %s (Username: %s)\n", service, entry.Username)
-				found = true
+			found := false
+			for service, entry := range v.Entries {
+				if strings.Contains(strings.ToLower(service), keyword) || strings.Contains(strings.ToLower(entry.Username), keyword) {
+					fmt.Printf("- %s (Username: %s)\n", service, entry.Username)
+					found = true
+				}
 			}
-		}
 
-		if !found {
-			fmt.Println("No matches found.")
-		}
-		fmt.Println("----------------------------------------")
+			if !found {
+				fmt.Println("No matches found.")
+			}
+			fmt.Println("----------------------------------------")
+		})
 	},
 }
 

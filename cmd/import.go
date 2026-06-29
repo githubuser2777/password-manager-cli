@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"password-manager-cli/internal/vault"
+
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/core"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 var importCmd = &cobra.Command{
@@ -17,44 +16,28 @@ var importCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		inputFile := args[0]
-		path := getVaultPath()
-
+		
 		data, err := os.ReadFile(inputFile)
 		if err != nil {
 			fmt.Println("Failed to read import file:", err)
 			return
 		}
 
-		var importedEntries map[string]core.Entry
+		var importedEntries map[string]vault.Entry
 		if err := json.Unmarshal(data, &importedEntries); err != nil {
 			fmt.Println("Failed to parse JSON file (must be a map of services to entries):", err)
 			return
 		}
 
-		masterPw, err := promptPassword("Master Password: ")
-		if err != nil {
-			return
-		}
-		defer crypto.ZeroBytes(masterPw)
-
-		vault, err := storage.LoadVault(path, masterPw)
-		if err != nil {
-			fmt.Println("Failed to open vault (make sure it's initialized first):", err)
-			return
-		}
-
-		count := 0
-		for k, v := range importedEntries {
-			vault.Entries[k] = v
-			count++
-		}
-
-		if err := storage.SaveVault(path, masterPw, vault); err != nil {
-			fmt.Println("Failed to save vault:", err)
-			return
-		}
-
-		fmt.Printf("Successfully imported %d credentials into the vault.\n", count)
+		withVaultMutate(func(v *vault.Vault, masterPw []byte, path string) bool {
+			count := 0
+			for k, vEntry := range importedEntries {
+				v.Entries[k] = vEntry
+				count++
+			}
+			fmt.Printf("Successfully imported %d credentials into the vault.\n", count)
+			return count > 0
+		})
 	},
 }
 

@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"password-manager-cli/internal/vault"
 	"strconv"
 
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/crypto"
 )
 
 var noSpecial bool
@@ -24,7 +24,7 @@ var generateCmd = &cobra.Command{
 			}
 		}
 
-		password, err := crypto.GenerateRandomPassword(length, !noSpecial)
+		password, err := vault.GenerateRandomPassword(length, !noSpecial)
 		if err != nil {
 			fmt.Println("Error generating password:", err)
 			return

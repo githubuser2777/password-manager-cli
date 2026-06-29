@@ -1,4 +1,4 @@
-package crypto
+package vault
 
 import (
 	"crypto/aes"
@@ -103,9 +103,37 @@ const (
 
 // ZeroBytes overwrites the byte slice with zeros to clear sensitive data from memory.
 func ZeroBytes(b []byte) {
-	for i := range b {
-		b[i] = 0
+	clear(b)
+}
+
+// EvaluatePasswordStrength returns a score (0-5) and a boolean indicating if it's considered weak.
+func EvaluatePasswordStrength(pwVal string) (score int, isWeak bool) {
+	if len(pwVal) == 0 {
+		return 0, true
 	}
+
+	if len(pwVal) >= 12 {
+		score += 2
+	} else if len(pwVal) >= 8 {
+		score++
+	}
+
+	hasUpper := strings.ContainsAny(pwVal, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	hasDigit := strings.ContainsAny(pwVal, "0123456789")
+	hasSpecial := strings.ContainsAny(pwVal, "!@#$%^&*()-_=+[]{}|;:,.<>?")
+
+	if hasUpper {
+		score++
+	}
+	if hasDigit {
+		score++
+	}
+	if hasSpecial {
+		score++
+	}
+
+	isWeak = (score <= 2) || (len(pwVal) < 8) || (!hasUpper && !hasDigit)
+	return score, isWeak
 }
 
 // ValidateMasterPassword verifies that a master password meets minimum security guidelines:

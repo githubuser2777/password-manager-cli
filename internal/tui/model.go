@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"password-manager-cli/internal/vault"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -12,9 +14,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"password-manager-cli/internal/core"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 // Custom Keys for Help Menu
@@ -95,7 +94,7 @@ type model struct {
 	state     state
 	vaultPath string
 	masterPw  []byte
-	vault     *core.Vault
+	vault     *vault.Vault
 
 	passwordInput  textinput.Model
 	servicesList   list.Model
@@ -205,59 +204,34 @@ func (m *model) updateList() {
 }
 
 func (m *model) runAudit(online bool) {
-	var report strings.Builder
-	report.WriteString(titleStyle.Render(fmt.Sprintf("Password Audit Report (Online: %v)", online)))
-	report.WriteString("\n\n")
+	var sb strings.Builder
+	sb.WriteString(titleStyle.Render(fmt.Sprintf("Password Audit Report (Online: %v)", online)))
+	sb.WriteString("\n\n")
 
-	weakCount := 0
-	reusedCount := 0
-	pwnedCount := 0
+	report := vault.RunAudit(m.vault, online)
 
-	// Check for reuse
-	pwMap := make(map[string][]string)
-	for service, entry := range m.vault.Entries {
-		pwMap[entry.Password] = append(pwMap[entry.Password], service)
-	}
-
-	for _, services := range pwMap {
-		if len(services) > 1 {
-			reusedCount++
-			report.WriteString(fmt.Sprintf("[!] REUSED: The password for %s is used across %d services.\n", services[0], len(services)))
+	for _, msg := range report.Messages {
+		switch msg.Level {
+		case "REUSED":
+			sb.WriteString(fmt.Sprintf("[!] %s\n", msg.Message))
+		case "WEAK":
+			sb.WriteString(fmt.Sprintf("[!] %s\n", msg.Message))
+		case "PWNED":
+			sb.WriteString(fmt.Sprintf("[!!!] %s\n", msg.Message))
+		case "ERROR":
+			sb.WriteString(fmt.Sprintf("[-] %s\n", msg.Message))
 		}
 	}
 
-	for service, entry := range m.vault.Entries {
-		// Basic strength check
-		if len(entry.Password) < 8 {
-			weakCount++
-			report.WriteString(fmt.Sprintf("[!] WEAK: Password for '%s' is too short (under 8 chars).\n", service))
-		} else if !strings.ContainsAny(entry.Password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") ||
-			!strings.ContainsAny(entry.Password, "0123456789") {
-			weakCount++
-			report.WriteString(fmt.Sprintf("[!] WEAK: Password for '%s' lacks numbers or uppercase letters.\n", service))
-		}
-
-		// Online HIBP check
-		if online {
-			pwned, err := core.CheckPwned(entry.Password)
-			if err != nil {
-				report.WriteString(fmt.Sprintf("[-] HIBP API Check failed for '%s': %v\n", service, err))
-			} else if pwned {
-				pwnedCount++
-				report.WriteString(fmt.Sprintf("[!!!] PWNED: Password for '%s' has been found in data breaches!\n", service))
-			}
-		}
-	}
-
-	report.WriteString("\n----------------------------------------\n")
-	report.WriteString(fmt.Sprintf("Audit Complete! Total passwords checked: %d\n", len(m.vault.Entries)))
-	report.WriteString(fmt.Sprintf("Weak: %d | Reused: %d | Pwned: %d\n", weakCount, reusedCount, pwnedCount))
+	sb.WriteString("\n----------------------------------------\n")
+	sb.WriteString(fmt.Sprintf("Audit Complete! Total passwords checked: %d\n", report.TotalChecked))
+	sb.WriteString(fmt.Sprintf("Weak: %d | Reused: %d | Pwned: %d\n", report.WeakCount, report.ReusedCount, report.PwnedCount))
 	if !online {
-		report.WriteString("(Run with Shift+r (R) to check online for data breaches)\n")
+		sb.WriteString("(Run with Shift+r (R) to check online for data breaches)\n")
 	}
-	report.WriteString("\n[esc] Back to list")
+	sb.WriteString("\n[esc] Back to list")
 
-	m.auditReport = report.String()
+	m.auditReport = sb.String()
 }
 
 func (m model) Init() tea.Cmd {
@@ -265,13 +239,13 @@ func (m model) Init() tea.Cmd {
 }
 
 type decryptResultMsg struct {
-	vault *core.Vault
+	vault *vault.Vault
 	err   error
 }
 
 func (m model) decryptVaultCmd() tea.Cmd {
 	return func() tea.Msg {
-		vault, err := storage.LoadVault(m.vaultPath, m.masterPw)
+		vault, err := vault.LoadVault(m.vaultPath, m.masterPw)
 		return decryptResultMsg{vault: vault, err: err}
 	}
 }
@@ -302,7 +276,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// Zero out key on exit
 			if m.masterPw != nil {
-				crypto.ZeroBytes(m.masterPw)
+				vault.ZeroBytes(m.masterPw)
 			}
 			return m, tea.Quit
 		}
@@ -322,7 +296,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.isError = true
 			m.state = stateMessage
 			if m.masterPw != nil {
-				crypto.ZeroBytes(m.masterPw)
+				vault.ZeroBytes(m.masterPw)
 				m.masterPw = nil
 			}
 		} else {
@@ -355,7 +329,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			copy(m.masterPw, rawPw)
 
 			// Zero raw values
-			crypto.ZeroBytes(rawPw)
+			vault.ZeroBytes(rawPw)
 			m.passwordInput.SetValue("")
 
 			m.state = stateDecrypting
@@ -440,7 +414,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.state = stateMessage
 							return m, nil
 						}
-						entry = core.Entry{
+						entry = vault.Entry{
 							Username:  username,
 							Password:  password,
 							Notes:     notes,
@@ -449,7 +423,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 
 					m.vault.Entries[service] = entry
-					if err := storage.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
+					if err := vault.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
 						m.msg = "Failed to save vault: " + err.Error()
 						m.isError = true
 					} else {
@@ -527,7 +501,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "y", "Y":
 				delete(m.vault.Entries, m.selectedItem.service)
-				if err := storage.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
+				if err := vault.SaveVault(m.vaultPath, m.masterPw, m.vault); err != nil {
 					m.msg = "Failed to delete: " + err.Error()
 					m.isError = true
 				} else {
@@ -562,26 +536,7 @@ func (m model) renderStrengthMeter() string {
 		return ""
 	}
 
-	score := 0
-	if len(pwVal) >= 12 {
-		score += 2
-	} else if len(pwVal) >= 8 {
-		score++
-	}
-
-	hasUpper := strings.ContainsAny(pwVal, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	hasDigit := strings.ContainsAny(pwVal, "0123456789")
-	hasSpecial := strings.ContainsAny(pwVal, "!@#$%^&*()-_=+[]{}|;:,.<>?")
-
-	if hasUpper {
-		score++
-	}
-	if hasDigit {
-		score++
-	}
-	if hasSpecial {
-		score++
-	}
+	score, _ := vault.EvaluatePasswordStrength(pwVal)
 
 	var bar string
 	var label string

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"password-manager-cli/internal/vault"
+
 	"github.com/spf13/cobra"
-	"password-manager-cli/internal/core"
-	"password-manager-cli/internal/crypto"
-	"password-manager-cli/internal/storage"
 )
 
 var initCmd = &cobra.Command{
@@ -29,10 +28,10 @@ var initCmd = &cobra.Command{
 			fmt.Println("Error reading password")
 			return
 		}
-		defer crypto.ZeroBytes(pw1)
+		defer clear(pw1)
 
 		// Validate Master Password strength
-		if err := crypto.ValidateMasterPassword(pw1); err != nil {
+		if err := vault.ValidateMasterPassword(pw1); err != nil {
 			fmt.Println("Weak Master Password:", err)
 			return
 		}
@@ -42,7 +41,7 @@ var initCmd = &cobra.Command{
 			fmt.Println("Error reading password confirmation")
 			return
 		}
-		defer crypto.ZeroBytes(pw2)
+		defer clear(pw2)
 
 		if !bytes.Equal(pw1, pw2) {
 			fmt.Println("Passwords do not match!")
@@ -50,18 +49,18 @@ var initCmd = &cobra.Command{
 		}
 
 		// Generate new salt and create empty vault
-		salt, err := crypto.GenerateSalt(16)
+		salt, err := vault.GenerateSalt(16)
 		if err != nil {
 			fmt.Println("Error generating salt:", err)
 			return
 		}
 
-		vault := &core.Vault{
+		v := &vault.Vault{
 			Salt:    salt,
-			Entries: make(map[string]core.Entry),
+			Entries: make(map[string]vault.Entry),
 		}
 
-		err = storage.SaveVault(path, pw1, vault)
+		err = vault.SaveVault(path, pw1, v)
 		if err != nil {
 			fmt.Println("Error saving vault:", err)
 			return

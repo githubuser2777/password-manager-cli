@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
 	"golang.org/x/term"
+	"password-manager-cli/internal/vault"
 )
 
 // getVaultPath returns the absolute path to the vault.enc file.
@@ -30,26 +32,36 @@ var promptPassword = func(prompt string) ([]byte, error) {
 		return nil, err
 	}
 
-	start := 0
-	end := len(bytePassword)
-	for start < end && isSpace(bytePassword[start]) {
-		start++
-	}
-	for end > start && isSpace(bytePassword[end-1]) {
-		end--
-	}
-
-	trimmed := make([]byte, end-start)
-	copy(trimmed, bytePassword[start:end])
+	trimmed := bytes.Clone(bytes.TrimSpace(bytePassword))
 
 	// Zero out original raw read buffer
-	for i := range bytePassword {
-		bytePassword[i] = 0
-	}
+	clear(bytePassword)
 
 	return trimmed, nil
 }
 
-func isSpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\v' || b == '\f' || b == '\r'
+func withVault(action func(v *vault.Vault, masterPw []byte, path string)) {
+	path := getVaultPath()
+	masterPw, err := promptPassword("Master Password: ")
+	if err != nil {
+		return
+	}
+	defer clear(masterPw)
+
+	v, err := vault.LoadVault(path, masterPw)
+	if err != nil {
+		fmt.Println("Failed to open vault:", err)
+		return
+	}
+	action(v, masterPw, path)
+}
+
+func withVaultMutate(action func(v *vault.Vault, masterPw []byte, path string) bool) {
+	withVault(func(v *vault.Vault, masterPw []byte, path string) {
+		if action(v, masterPw, path) {
+			if err := vault.SaveVault(path, masterPw, v); err != nil {
+				fmt.Println("Failed to save vault:", err)
+			}
+		}
+	})
 }

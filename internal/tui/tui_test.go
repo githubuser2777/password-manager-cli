@@ -1,9 +1,10 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"password-manager-cli/internal/core"
+	"password-manager-cli/internal/vault"
 	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestModelUpdate(t *testing.T) {
@@ -24,14 +25,14 @@ func TestModelUpdate(t *testing.T) {
 
 	// Simulate successful decrypt
 	m, _ = m.Update(decryptResultMsg{
-		vault: &core.Vault{Entries: make(map[string]core.Entry)},
+		vault: &vault.Vault{Entries: make(map[string]vault.Entry)},
 	})
 	if m.(model).state != stateList {
 		t.Errorf("Expected stateList after successful decrypt, got %v", m.(model).state)
 	}
 
 	mModel := m.(model)
-	mModel.vault.Entries["test"] = core.Entry{Username: "u", Password: "p"}
+	mModel.vault.Entries["test"] = vault.Entry{Username: "u", Password: "p"}
 	mModel.updateList()
 	m = mModel
 

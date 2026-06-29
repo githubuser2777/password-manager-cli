@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"password-manager-cli/internal/tui"
+
+	"github.com/spf13/cobra"
 )
 
 var tuiCmd = &cobra.Command{
