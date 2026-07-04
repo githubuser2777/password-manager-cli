@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -155,7 +156,7 @@ func Execute() {
 
 			var password string
 			if *generateFlag {
-				pw, err := vault.GenerateRandomPassword(16, true)
+				pw, err := vault.GenerateRandomPassword(16, true, true)
 				if err != nil {
 					fmt.Println("Error generating password:", err)
 					return false
@@ -320,7 +321,7 @@ func Execute() {
 				length = l
 			}
 		}
-		pw, err := vault.GenerateRandomPassword(length, true)
+		pw, err := vault.GenerateRandomPassword(length, true, true)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -338,22 +339,77 @@ func Execute() {
 		})
 
 	case "export":
+		fs := flag.NewFlagSet("export", flag.ExitOnError)
+		csvFlag := fs.Bool("csv", false, "Export to CSV format")
+		fs.Parse(args)
+
 		withVault(func(v *vault.Vault, masterPw []byte, path string) {
-			data, err := json.MarshalIndent(v.Entries, "", "  ")
-			if err != nil {
-				fmt.Println("Export failed:", err)
-				return
+			if *csvFlag {
+				// ponytail: standard library encoding/csv
+				writer := csv.NewWriter(os.Stdout)
+				writer.Write([]string{"Service", "Username", "Password", "Notes", "CreatedAt", "UpdatedAt"})
+				for service, entry := range v.Entries {
+					writer.Write([]string{service, entry.Username, entry.Password, entry.Notes, entry.CreatedAt, entry.UpdatedAt})
+				}
+				writer.Flush()
+			} else {
+				data, err := json.MarshalIndent(v.Entries, "", "  ")
+				if err != nil {
+					fmt.Println("Export failed:", err)
+					return
+				}
+				fmt.Println(string(data))
 			}
-			fmt.Println(string(data))
 		})
 
 	case "import":
-		if len(args) != 1 {
-			fmt.Println("Usage: passmgr import <file.json>")
+		fs := flag.NewFlagSet("import", flag.ExitOnError)
+		csvFlag := fs.Bool("csv", false, "Import from CSV format")
+		fs.Parse(args)
+
+		if fs.NArg() != 1 {
+			fmt.Println("Usage: passmgr import [-csv] <file>")
 			return
 		}
-		file := args[0]
+		file := fs.Arg(0)
 		withVaultMutate(func(v *vault.Vault, masterPw []byte, path string) bool {
+			if *csvFlag {
+				// ponytail: standard library encoding/csv
+				f, err := os.Open(file)
+				if err != nil {
+					fmt.Println("Failed to open file:", err)
+					return false
+				}
+				defer f.Close()
+
+				reader := csv.NewReader(f)
+				records, err := reader.ReadAll()
+				if err != nil {
+					fmt.Println("Failed to read CSV:", err)
+					return false
+				}
+
+				count := 0
+				for i, record := range records {
+					if i == 0 {
+						continue // skip header
+					}
+					if len(record) < 6 {
+						continue
+					}
+					v.Entries[record[0]] = vault.Entry{
+						Username:  record[1],
+						Password:  record[2],
+						Notes:     record[3],
+						CreatedAt: record[4],
+						UpdatedAt: record[5],
+					}
+					count++
+				}
+				fmt.Printf("Imported %d entries from CSV.\n", count)
+				return true
+			}
+
 			data, err := os.ReadFile(file)
 			if err != nil {
 				fmt.Println("Failed to read file:", err)
@@ -422,8 +478,8 @@ func Execute() {
 		fmt.Println("  search        Search entries")
 		fmt.Println("  generate      Generate random password")
 		fmt.Println("  audit         Run security audit")
-		fmt.Println("  export        Export vault to JSON")
-		fmt.Println("  import        Import vault from JSON")
+		fmt.Println("  export        Export vault to JSON or CSV (-csv)")
+		fmt.Println("  import        Import vault from JSON or CSV (-csv)")
 		fmt.Println("  changepass    Change master password")
 		fmt.Println("  tui           Launch terminal user interface (default)")
 
