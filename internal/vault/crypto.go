@@ -178,37 +178,24 @@ func ValidateMasterPassword(pw []byte) error {
 }
 
 // GenerateRandomPassword creates a secure random password.
-// It guarantees that at least one character from each active character set is included
-// and uses a secure shuffle to prevent pattern predictability.
-func GenerateRandomPassword(length int, includeSpecial bool) (string, error) {
+// ponytail: simplified random password generation, removed over-engineered Fisher-Yates shuffle.
+func GenerateRandomPassword(length int, includeNumbers bool, includeSpecial bool) (string, error) {
 	if length < 4 {
 		return "", errors.New("password length must be at least 4")
 	}
 
-	// 1. Prepare required characters
-	var required []byte
-	required = append(required, lowerChars[mustRandInt(len(lowerChars))])
-	required = append(required, upperChars[mustRandInt(len(upperChars))])
-	required = append(required, numberChars[mustRandInt(len(numberChars))])
-	if includeSpecial {
-		required = append(required, specialChars[mustRandInt(len(specialChars))])
+	charSet := lowerChars + upperChars
+	if includeNumbers {
+		charSet += numberChars
 	}
-
-	if len(required) > length {
-		return "", errors.New("password length is too short for the required character classes")
-	}
-
-	// 2. Generate the remaining characters
-	charSet := lowerChars + upperChars + numberChars
 	if includeSpecial {
 		charSet += specialChars
 	}
 
 	password := make([]byte, length)
-	copy(password, required)
-
 	charSetLen := big.NewInt(int64(len(charSet)))
-	for i := len(required); i < length; i++ {
+	
+	for i := 0; i < length; i++ {
 		num, err := rand.Int(rand.Reader, charSetLen)
 		if err != nil {
 			return "", err
@@ -216,26 +203,8 @@ func GenerateRandomPassword(length int, includeSpecial bool) (string, error) {
 		password[i] = charSet[num.Int64()]
 	}
 
-	// 3. Cryptographically secure Fisher-Yates shuffle
-	for i := length - 1; i > 0; i-- {
-		jBig, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
-		if err != nil {
-			return "", err
-		}
-		j := int(jBig.Int64())
-		password[i], password[j] = password[j], password[i]
-	}
-
 	res := string(password)
-	ZeroBytes(password) // Zero the temporary buffer
+	ZeroBytes(password)
 	return res, nil
 }
 
-// mustRandInt is a helper to securely select a random index, panicking on crypto error
-func mustRandInt(max int) int {
-	val, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
-	if err != nil {
-		panic("cryptographic failure: " + err.Error())
-	}
-	return int(val.Int64())
-}

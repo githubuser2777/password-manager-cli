@@ -41,7 +41,7 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestGenerateRandomPassword(t *testing.T) {
-	pw, err := GenerateRandomPassword(16, true)
+	pw, err := GenerateRandomPassword(16, true, true)
 	if err != nil {
 		t.Fatalf("failed to generate password: %v", err)
 	}
