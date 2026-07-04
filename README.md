@@ -19,20 +19,30 @@ Requires Go 1.21 or later.
 ```sh
 git clone https://github.com/githubuser2777/password-manager-cli.git
 cd password-manager-cli
-go build -o passmgr
+
+# Global install (accessible anywhere as password-manager-cli)
+go install
+
+# Or build locally (creates passmgr in current directory)
+go build -o passmgr      # Linux/macOS
+go build -o passmgr.exe  # Windows
 ```
 
 ## Quick Start
 
+*Note: If you used `go install` above, your command will be `password-manager-cli` everywhere.*
+
 1. Initialize your vault:
    ```sh
-   passmgr init
+   .\passmgr.exe init  # Windows (Local build)
+   ./passmgr init      # Linux/macOS (Local build)
    ```
    > **Note:** Creates `~/.passmgr/vault.enc` and sets your master password. Strength is enforced. No cloud recovery exists—if you lose it, your vault is gone.
 
 2. Launch the interactive TUI:
    ```sh
-   passmgr
+   .\passmgr.exe   # Windows
+   ./passmgr       # Linux/macOS
    ```
 
 ## Usage
