@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"password-manager-cli/internal/sys"
 	"password-manager-cli/internal/vault"
 
-	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -309,7 +309,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.clipboardTimer > 0 {
 			m.clipboardTimer--
 			if m.clipboardTimer == 0 {
-				_ = clipboard.WriteAll("")
+				_ = sys.WriteClipboard("")
 				m.msg = "Clipboard cleared automatically."
 				m.isError = false
 			} else {
@@ -371,7 +371,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = stateAudit
 				case "c":
 					if i, ok := m.servicesList.SelectedItem().(item); ok {
-						if err := clipboard.WriteAll(i.password); err != nil {
+						if err := sys.WriteClipboard(i.password); err != nil {
 							m.msg = "Failed to copy password: " + err.Error()
 							m.isError = true
 						} else {
@@ -479,7 +479,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 			case "c":
-				if err := clipboard.WriteAll(m.selectedItem.password); err != nil {
+				if err := sys.WriteClipboard(m.selectedItem.password); err != nil {
 					m.msg = "Failed to copy password: " + err.Error()
 					m.isError = true
 				} else {

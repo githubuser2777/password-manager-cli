@@ -41,9 +41,16 @@ jobs:
         
         BINARY_NAME="passmgr-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
         
-        env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/$BINARY_NAME .
+        env CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o build/$BINARY_NAME .
         
         echo "Built $BINARY_NAME successfully."
+        
+        # Build portable version for Windows
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          PORTABLE_NAME="passmgr-portable-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          env CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -tags portable -ldflags="-s -w" -o build/$PORTABLE_NAME .
+          echo "Built $PORTABLE_NAME successfully."
+        fi
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
