@@ -1,5 +1,7 @@
 # passmgr
 
+[![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg)](LICENSE)
+
 A fast, secure, and minimal command-line password manager featuring a local vault and an interactive Terminal UI.
 
 Secured by industry-standard cryptography (AES-256-GCM and Argon2id).
@@ -79,5 +81,9 @@ passmgr export               # Export vault to JSON
 passmgr import               # Import vault from JSON
 passmgr changepass           # Change master password
 ```
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0-only). See [`LICENSE`](LICENSE) for details.
 
 <!-- ponytail: Professional doesn't mean bloated. Added explicit constraints to 'init' so users know what to expect (no recovery). No unnecessary fluff. YAGNI. -->
